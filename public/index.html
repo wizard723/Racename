@@ -1,0 +1,2865 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0f">
+<title>Turbo Racing Pro</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#090a0f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;position:fixed;overscroll-behavior:none}
+canvas#c{display:block;position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.hidden{display:none!important}
+
+/* Прокручиваемые меню и модальные окна */
+.screen{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;justify-content:flex-start;align-items:center;
+  padding:max(16px, env(safe-area-inset-top)) 16px max(48px, env(safe-area-inset-bottom));
+  background:radial-gradient(circle at 50% 15%,#1c2038 0%,#090a0f 75%);
+  z-index:10;
+  overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+  overscroll-behavior-y:contain;
+  scroll-behavior:smooth;
+}
+.screen *,.overlay *{touch-action:pan-y}
+.screen input,.overlay input{touch-action:auto}
+.screen::-webkit-scrollbar,.overlay::-webkit-scrollbar{width:6px}
+.screen::-webkit-scrollbar-thumb,.overlay::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:3px}
+
+.card{width:100%;max-width:460px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.11);border-radius:18px;padding:16px;margin-bottom:14px;backdrop-filter:blur(10px);flex-shrink:0}
+.title{font-size:32px;font-weight:900;letter-spacing:2px;margin:4px 0 12px;text-align:center;line-height:1.05;flex-shrink:0}
+.title span{color:#ff3366;text-shadow:0 0 24px rgba(255,51,102,.65)}
+.sub-title{font-size:17px;font-weight:800;margin-bottom:10px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.lbl{width:100%;font-size:11px;color:#9aa0b8;margin:10px 0 5px;text-transform:uppercase;letter-spacing:1px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.inp{width:100%;padding:12px 14px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.15);border-radius:12px;color:#fff;font-size:15px;outline:none;-webkit-user-select:text;user-select:text}
+.inp:focus{border-color:#ff3366}
+.inp.code{text-transform:uppercase;letter-spacing:4px;text-align:center;font-weight:800}
+.row{display:flex;gap:8px;width:100%}
+.row > *{flex:1;min-width:0}
+.colors{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start;margin-top:4px}
+.swatch{width:32px;height:32px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:transform .12s;flex-shrink:0}
+.swatch.active{border-color:#fff;transform:scale(1.15);box-shadow:0 0 10px rgba(255,255,255,.5)}
+.car-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:4px}
+.car-card{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;padding:10px;cursor:pointer;transition:all .15s;text-align:left}
+.car-card.active{border-color:#ff3366;background:rgba(255,51,102,.15)}
+.car-name{font-weight:800;font-size:14px;margin-bottom:2px}
+.car-desc{font-size:10px;color:#b2b8d0;margin-bottom:5px}
+.stat-bar{height:4px;background:rgba(255,255,255,.12);border-radius:2px;margin:3px 0;overflow:hidden}
+.stat-fill{height:100%;background:linear-gradient(90deg,#ff3366,#ff8833)}
+.stat-lbl{font-size:10px;color:#9aa0b8;display:flex;justify-content:space-between}
+.seg{display:flex;background:rgba(0,0,0,.35);border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;padding:8px 4px;border:none;border-radius:8px;background:transparent;color:#9aa0b8;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.seg button.active{background:#ff3366;color:#fff}
+.btn{width:100%;padding:13px 14px;border:none;border-radius:13px;font-size:14px;font-weight:800;cursor:pointer;transition:transform .1s,opacity .15s;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:linear-gradient(135deg,#ff3366,#ff6633);color:#fff;box-shadow:0 4px 18px rgba(255,51,102,.38)}
+.btn.secondary{background:rgba(255,255,255,.11);color:#fff}
+.btn.green{background:linear-gradient(135deg,#28c76f,#1e9e56);color:#fff;box-shadow:0 4px 18px rgba(40,199,111,.35)}
+.btn.danger{background:rgba(255,60,60,.22);color:#ff7777;border:1px solid rgba(255,60,60,.35)}
+.btn.sm{padding:8px 11px;font-size:12px;margin-top:0}
+.err{color:#ff5566;margin-top:8px;font-size:13px;min-height:18px;text-align:center;font-weight:600}
+.roomcode{font-size:32px;font-weight:900;letter-spacing:7px;color:#ff3366;margin:6px 0;text-align:center}
+.hint{color:#9aa0b8;font-size:12px;text-align:center;margin:4px 0}
+.players-box{width:100%;display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.pl-item{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:rgba(255,255,255,.06);border-radius:10px;font-size:13px}
+.pl-left{display:flex;align-items:center;gap:8px}
+.pl-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.slider-inp{width:100%;accent-color:#ff3366;height:6px;cursor:pointer;touch-action:none}
+
+/* HUD */
+#hud{position:absolute;inset:0;pointer-events:none;z-index:5}
+.hud-top{position:absolute;top:0;left:0;right:0;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.hud-box{background:rgba(10,12,20,.76);border:1px solid rgba(255,255,255,.12);padding:7px 11px;border-radius:12px;backdrop-filter:blur(6px)}
+.hud-row{display:flex;gap:11px;align-items:center;flex-wrap:wrap}
+.hud-val{font-size:16px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums}
+.hud-lbl{font-size:9px;color:#9aa0b8;text-transform:uppercase;letter-spacing:.5px}
+.hud-btns{display:flex;gap:7px;pointer-events:auto;margin-left:auto}
+.icon-btn{width:38px;height:38px;border-radius:11px;background:rgba(10,12,20,.8);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.icon-btn:active{transform:scale(.93)}
+.lb{position:absolute;top:68px;left:12px;background:rgba(10,12,20,.72);border:1px solid rgba(255,255,255,.1);padding:7px 10px;border-radius:11px;font-size:11px;min-width:152px;display:flex;flex-direction:column;gap:3px}
+.lb-row{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.lb-row.me{color:#ffcc00;font-weight:700}
+.lb-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+#minimap{position:absolute;top:68px;right:12px;width:128px;height:96px;background:rgba(10,12,20,.74);border:1px solid rgba(255,255,255,.18);border-radius:11px}
+
+/* DASHBOARD */
+.dash{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(10,12,20,.8);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:8px 16px;display:flex;align-items:center;gap:14px;backdrop-filter:blur(6px)}
+.gear-badge{width:36px;height:36px;border-radius:10px;background:#ff3366;color:#fff;font-size:20px;font-weight:900;display:flex;align-items:center;justify-content:center}
+.spd-num{font-size:26px;font-weight:900;line-height:1;color:#fff;font-variant-numeric:tabular-nums}
+.spd-unit{font-size:10px;color:#9aa0b8;text-transform:uppercase}
+.rpm-wrap{width:108px}
+.rpm-bar{height:8px;background:rgba(255,255,255,.14);border-radius:4px;overflow:hidden;margin-top:4px}
+.rpm-fill{height:100%;width:20%;background:linear-gradient(90deg,#28c76f,#ffcc00,#ff3366);transition:width .05s}
+
+/* BANNERS & LIGHTS */
+#banner{position:absolute;top:24%;left:50%;transform:translate(-50%,-50%);font-size:30px;font-weight:900;text-align:center;text-shadow:0 4px 20px rgba(0,0,0,.95);pointer-events:none;z-index:8;transition:opacity .2s}
+.lights{display:flex;gap:12px;background:rgba(0,0,0,.85);padding:12px 18px;border-radius:16px;border:2px solid rgba(255,255,255,.2)}
+.bulb{width:28px;height:28px;border-radius:50%;background:#2a2a2a;box-shadow:inset 0 2px 5px #000}
+.bulb.red{background:#ff2a4b;box-shadow:0 0 18px #ff2a4b}
+.bulb.green{background:#28c76f;box-shadow:0 0 22px #28c76f}
+
+/* CONTROLS */
+#controls{position:absolute;inset:0;pointer-events:none;display:flex;justify-content:space-between;align-items:flex-end;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom));z-index:6;touch-action:none}
+.grp{display:flex;gap:10px;pointer-events:none;align-items:flex-end}
+.cbtn{pointer-events:auto;width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.3);color:#fff;font-size:24px;font-weight:800;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(5px);transition:background .06s,transform .06s;touch-action:none}
+.cbtn.drift-btn{width:60px;height:60px;font-size:12px;letter-spacing:.5px}
+.cbtn.on{background:rgba(255,51,102,.7);border-color:#ff3366;transform:scale(.92)}
+#wheelWrap{pointer-events:auto;width:136px;height:136px;border-radius:50%;background:rgba(255,255,255,.08);border:3px solid rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center;position:relative;touch-action:none}
+#wheelInner{width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;color:rgba(255,255,255,.65);font-weight:800;pointer-events:none}
+#wheelInner::before{content:'';position:absolute;top:6px;width:8px;height:18px;background:#ff3366;border-radius:4px}
+
+/* MODAL OVERLAYS */
+.overlay{
+  position:absolute;inset:0;
+  background:rgba(5,7,14,.86);backdrop-filter:blur(8px);
+  z-index:20;
+  display:flex;flex-direction:column;justify-content:flex-start;align-items:center;
+  padding:max(20px, env(safe-area-inset-top)) 16px max(48px, env(safe-area-inset-bottom));
+  overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y;
+  overscroll-behavior-y:contain;
+}
+.overlay > .card{margin-top:auto;margin-bottom:auto}
+.res-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+.res-table th{text-align:left;color:#9aa0b8;font-size:11px;padding:6px;border-bottom:1px solid rgba(255,255,255,.12)}
+.res-table td{padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.06)}
+.replay-bar{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(10,12,20,.9);border:1px solid rgba(255,255,255,.22);border-radius:14px;padding:10px 16px;display:flex;align-items:center;gap:12px;z-index:15;pointer-events:auto}
+
+.net-toast{position:absolute;top:64px;left:50%;transform:translateX(-50%);background:rgba(255,152,0,.92);color:#111;font-weight:800;font-size:12px;padding:6px 14px;border-radius:20px;z-index:25;pointer-events:none}
+
+@media(max-width:480px){
+  .hud-val{font-size:14px}
+  .hud-box{padding:5px 8px}
+  .hud-row{gap:8px}
+  .lb{top:62px;min-width:132px;font-size:10px;padding:5px 8px}
+  #minimap{top:62px;width:108px;height:82px}
+}
+@media(max-height:520px){
+  .cbtn{width:58px;height:58px;font-size:20px}
+  .cbtn.drift-btn{width:48px;height:48px;font-size:10px}
+  .dash{bottom:8px;padding:5px 12px;gap:10px}
+  .spd-num{font-size:20px}
+  #minimap{width:100px;height:75px;top:54px}
+  .lb{top:54px}
+}
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<div id="netToast" class="net-toast hidden">Переподключение к серверу...</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div class="hud-top">
+    <div class="hud-box hud-row">
+      <div>
+        <div class="hud-lbl">Позиция</div>
+        <div class="hud-val" id="posLbl">1/1</div>
+      </div>
+      <div>
+        <div class="hud-lbl">Круг</div>
+        <div class="hud-val"><span id="lapN">1</span>/<span id="lapMax">3</span></div>
+      </div>
+      <div>
+        <div class="hud-lbl">Тек. круг</div>
+        <div class="hud-val" id="curLapLbl">00:00.0</div>
+      </div>
+      <div>
+        <div class="hud-lbl">Лучш. круг</div>
+        <div class="hud-val" id="bestLapLbl" style="color:#28c76f">--:--.-</div>
+      </div>
+      <div>
+        <div class="hud-lbl">Общее</div>
+        <div class="hud-val" id="timeLbl">00:00.0</div>
+      </div>
+      <div id="penBox" class="hidden">
+        <div class="hud-lbl" style="color:#ff5566">Штраф</div>
+        <div class="hud-val" style="color:#ff5566" id="penLbl">+0с</div>
+      </div>
+    </div>
+
+    <div class="hud-btns">
+      <button class="icon-btn" id="fsHudBtn" title="Полный экран">⛶</button>
+      <button class="icon-btn" id="camBtn" title="Камера">🎥</button>
+      <button class="icon-btn" id="pauseBtn" title="Пауза">⏸</button>
+    </div>
+  </div>
+
+  <div class="lb" id="lb"></div>
+  <canvas id="minimap" width="128" height="96"></canvas>
+
+  <div class="dash">
+    <div class="gear-badge" id="gearLbl">1</div>
+    <div>
+      <div class="spd-num" id="spd">0</div>
+      <div class="spd-unit">км/ч</div>
+    </div>
+    <div class="rpm-wrap">
+      <div class="stat-lbl"><span>RPM</span><span id="rpmNum">1000</span></div>
+      <div class="rpm-bar"><div class="rpm-fill" id="rpmFill"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="banner" class="hidden"></div>
+
+<!-- TOUCH CONTROLS -->
+<div id="controls" class="hidden">
+  <div class="grp" id="steerBtns">
+    <button class="cbtn" data-k="left">◀</button>
+    <button class="cbtn" data-k="right">▶</button>
+  </div>
+  <div id="wheelWrap" class="hidden">
+    <div id="wheelInner">РУЛЬ</div>
+  </div>
+  <div class="grp">
+    <button class="cbtn drift-btn" data-k="drift">ДРИФТ</button>
+    <button class="cbtn" data-k="down">▼</button>
+    <button class="cbtn" data-k="up">▲</button>
+  </div>
+</div>
+
+<!-- MAIN MENU -->
+<div id="menu" class="screen">
+  <div class="title">🏎️ TURBO<br><span>RACING PRO</span></div>
+
+  <div class="card">
+    <div class="sub-title">
+      <span>Профиль и Авто</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn secondary sm" style="width:auto" id="btnFullscreenMenu">⛶ Полный экран</button>
+        <button class="btn secondary sm" style="width:auto" id="btnSettingsOpen">⚙ Настройки</button>
+      </div>
+    </div>
+    <div id="fsStatusHint" class="hint hidden" style="color:#ffcc00;margin-bottom:6px"></div>
+
+    <div class="lbl">Имя гонщика</div>
+    <input id="nick" class="inp" maxlength="14" value="Гонщик1">
+
+    <div class="lbl">Выбор автомобиля</div>
+    <div class="car-grid" id="carGrid"></div>
+
+    <div class="lbl">Цвет кузова</div>
+    <div id="colors" class="colors"></div>
+  </div>
+
+  <div class="card">
+    <div class="sub-title"><span>Параметры заезда</span></div>
+    <div class="lbl">Трасса</div>
+    <div class="seg" id="trackSeg">
+      <button data-v="oval" class="active">Овал</button>
+      <button data-v="circuit">Гран-При</button>
+      <button data-v="hairpin">Серпантин</button>
+    </div>
+
+    <div class="row">
+      <div>
+        <div class="lbl">Погода</div>
+        <div class="seg" id="weatherSeg">
+          <button data-v="clear" class="active">Ясно</button>
+          <button data-v="rain">Дождь</button>
+          <button data-v="fog">Туман</button>
+        </div>
+      </div>
+      <div>
+        <div class="lbl">Время суток</div>
+        <div class="seg" id="timeSeg">
+          <button data-v="day" class="active">День</button>
+          <button data-v="night">Ночь</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <div class="lbl">AI Боты</div>
+        <div class="seg" id="aiSeg">
+          <button data-v="0">0</button>
+          <button data-v="2" class="active">2</button>
+          <button data-v="4">4</button>
+        </div>
+      </div>
+      <div>
+        <div class="lbl">Сложность AI</div>
+        <div class="seg" id="diffSeg">
+          <button data-v="easy">Легко</button>
+          <button data-v="medium" class="active">Средне</button>
+          <button data-v="hard">Сложно</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="lbl">Количество кругов</div>
+    <div class="seg" id="lapsSeg">
+      <button data-v="2">2</button>
+      <button data-v="3" class="active">3</button>
+      <button data-v="5">5</button>
+    </div>
+
+    <button id="btnSolo" class="btn primary">🏁 Одиночная гонка (vs AI)</button>
+    <button id="btnRecordsOpen" class="btn secondary">🏆 Личные и общие рекорды</button>
+  </div>
+
+  <div class="card">
+    <div class="sub-title"><span>Мультиплеер онлайн</span></div>
+    <button id="btnCreate" class="btn green">Создать комнату</button>
+    <div class="lbl">Код комнаты</div>
+    <div class="row">
+      <input id="code" class="inp code" maxlength="5" placeholder="XXXXX" autocapitalize="characters">
+      <button id="btnJoin" class="btn primary" style="margin-top:0;max-width:120px">Войти</button>
+    </div>
+    <div id="err" class="err"></div>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="lobby" class="screen hidden">
+  <div class="card">
+    <div class="sub-title"><span>Лобби комнаты</span><span id="lobbyTrackLbl" style="font-size:12px;color:#ff3366">Овал</span></div>
+    <div class="hint">Код приглашения:</div>
+    <div class="roomcode" id="roomCodeLbl">-----</div>
+    <div class="hint">Участников: <b id="plCount">1</b>/6 + Боты: <b id="lobbyAiCount">2</b></div>
+    <div class="players-box" id="plBox"></div>
+    <button id="btnStart" class="btn primary">Начать гонку</button>
+    <button id="btnLeave" class="btn danger">Выйти из лобби</button>
+  </div>
+</div>
+
+<!-- PAUSE OVERLAY -->
+<div id="pauseOverlay" class="overlay hidden">
+  <div class="card" style="max-width:360px;text-align:center">
+    <div class="title" style="font-size:26px">ПАУЗА</div>
+    <button id="btnResume" class="btn primary">▶ Продолжить</button>
+    <button id="btnPauseFullscreen" class="btn secondary">⛶ Полный экран</button>
+    <button id="btnPauseSettings" class="btn secondary">⚙ Настройки</button>
+    <button id="btnRestartSolo" class="btn secondary">↻ Заново</button>
+    <button id="btnExitRace" class="btn danger">✕ В главное меню</button>
+  </div>
+</div>
+
+<!-- SETTINGS OVERLAY -->
+<div id="settingsOverlay" class="overlay hidden">
+  <div class="card" style="max-width:420px">
+    <div class="sub-title"><span>Настройки игры и физики</span></div>
+
+    <div class="lbl"><span>Чувствительность руля</span><span id="steerSensVal">100%</span></div>
+    <input type="range" id="steerSensRng" class="slider-inp" min="50" max="160" step="5" value="100">
+
+    <div class="lbl"><span>Ограничитель макс. скорости</span><span id="maxSpdMultVal">100%</span></div>
+    <input type="range" id="maxSpdMultRng" class="slider-inp" min="60" max="125" step="5" value="100">
+
+    <div class="lbl"><span>Дистанция камеры (масштаб)</span><span id="camDistVal">100%</span></div>
+    <input type="range" id="camDistRng" class="slider-inp" min="70" max="135" step="5" value="100">
+
+    <div class="lbl">Режим камеры</div>
+    <div class="seg" id="camAngleSeg">
+      <button data-v="dynamic" class="active">Динамич.</button>
+      <button data-v="fixed">Центр</button>
+      <button data-v="chase">Поворот</button>
+    </div>
+
+    <div class="lbl">Качество графики (FPS)</div>
+    <div class="seg" id="gfxSeg">
+      <button data-v="low">Низкое</button>
+      <button data-v="medium">Среднее</button>
+      <button data-v="high" class="active">Высокое</button>
+    </div>
+
+    <div class="lbl">Мобильное управление</div>
+    <div class="seg" id="ctrlSeg">
+      <button data-v="buttons" class="active">Кнопки</button>
+      <button data-v="wheel">Руль</button>
+    </div>
+
+    <div class="row">
+      <div>
+        <div class="lbl">Звук (SFX)</div>
+        <div class="seg" id="sfxSeg">
+          <button data-v="on" class="active">Вкл</button>
+          <button data-v="off">Выкл</button>
+        </div>
+      </div>
+      <div>
+        <div class="lbl">Музыка</div>
+        <div class="seg" id="bgmSeg">
+          <button data-v="on" class="active">Вкл</button>
+          <button data-v="off">Выкл</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint" style="margin-top:12px">ПК: W/A/S/D или Стрелки — газ/руль, Пробел — дрифт, C — камера, F — полный экран, P — пауза</div>
+    <button id="btnSettingsClose" class="btn primary">Готово</button>
+  </div>
+</div>
+
+<!-- RECORDS OVERLAY -->
+<div id="recordsOverlay" class="overlay hidden">
+  <div class="card" style="max-width:440px">
+    <div class="sub-title"><span>🏆 Рекорды трасс и кругов</span></div>
+    <div class="seg" id="recTrackSeg">
+      <button data-v="oval" class="active">Овал</button>
+      <button data-v="circuit">Гран-При</button>
+      <button data-v="hairpin">Серпантин</button>
+    </div>
+    <div id="bestLapPersonalBox" class="hint" style="margin-top:8px;color:#28c76f;font-weight:700"></div>
+    <table class="res-table">
+      <thead><tr><th>#</th><th>Гонщик</th><th>Авто</th><th>Заезд</th><th>Лучш. круг</th></tr></thead>
+      <tbody id="recBody"></tbody>
+    </table>
+    <button id="btnRecordsClose" class="btn primary">Закрыть</button>
+  </div>
+</div>
+
+<!-- FINISH RESULTS OVERLAY -->
+<div id="finishOverlay" class="overlay hidden">
+  <div class="card" style="max-width:460px">
+    <div class="title" style="font-size:26px">🏁 ФИНИШ!</div>
+    <div id="finishSummary" class="hint" style="font-size:14px;color:#fff;margin-bottom:8px"></div>
+    <table class="res-table">
+      <thead><tr><th>Место</th><th>Гонщик</th><th>Лучш. круг</th><th>Штраф</th><th>Итого</th></tr></thead>
+      <tbody id="finishBody"></tbody>
+    </table>
+    <button id="btnWatchReplay" class="btn green">🎬 Повтор гонки (Replay)</button>
+    <button id="btnFinishRestart" class="btn primary">↻ Перезапустить гонку</button>
+    <button id="btnFinishMenu" class="btn secondary">В главное меню</button>
+  </div>
+</div>
+
+<!-- REPLAY CONTROLS -->
+<div id="replayBar" class="replay-bar hidden">
+  <button class="btn secondary sm" style="width:auto" id="btnReplayPause">⏸</button>
+  <span id="replayTimeLbl" style="font-size:13px;font-weight:700">Повтор: 00:00</span>
+  <button class="btn danger sm" style="width:auto" id="btnReplayExit">Выйти из повтора</button>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+(() => {
+'use strict';
+
+// ======================= DATA & CONFIG =======================
+const CARS = {
+  sport: {
+    id: 'sport', name: 'Apex GT', desc: 'Сбалансированный спорткар',
+    maxSpeed: 545, accel: 390, brake: 640, turnRate: 3.0,
+    grip: 7.4, driftGrip: 2.85, mass: 1.0, downforce: 0.25,
+    stats: { speed: 78, accel: 82, handling: 88 }
+  },
+  muscle: {
+    id: 'muscle', name: 'V8 Fury', desc: 'Мощный разгон, тяжёлый занос',
+    maxSpeed: 580, accel: 435, brake: 570, turnRate: 2.6,
+    grip: 6.2, driftGrip: 2.15, mass: 1.28, downforce: 0.15,
+    stats: { speed: 88, accel: 92, handling: 68 }
+  },
+  drift: {
+    id: 'drift', name: 'Sakura S15', desc: 'Контролируемый глубокий дрифт',
+    maxSpeed: 530, accel: 380, brake: 615, turnRate: 3.3,
+    grip: 5.9, driftGrip: 1.6, mass: 0.94, downforce: 0.2,
+    stats: { speed: 74, accel: 80, handling: 96 }
+  },
+  hyper: {
+    id: 'hyper', name: 'Valkyrie X', desc: 'Высокая прижимная сила и скорость',
+    maxSpeed: 630, accel: 465, brake: 710, turnRate: 3.15,
+    grip: 8.6, driftGrip: 3.25, mass: 1.06, downforce: 0.42,
+    stats: { speed: 98, accel: 95, handling: 90 }
+  }
+};
+
+const COLORS = ['#ff3366','#33ccff','#ffcc00','#28c76f','#ff66cc','#ff8800','#9966ff','#00ffcc','#ffffff','#e63946'];
+
+const TRACKS = {
+  oval: {
+    id: 'oval', name: 'Овал Спидвей', roadWidth: 235, worldW: 3200, worldH: 2200,
+    points: [
+      {x: 600, y: 380}, {x: 1600, y: 380}, {x: 2600, y: 380},
+      {x: 2880, y: 650}, {x: 2880, y: 1100}, {x: 2880, y: 1550},
+      {x: 2600, y: 1820}, {x: 1600, y: 1820}, {x: 600, y: 1820},
+      {x: 320, y: 1550}, {x: 320, y: 1100}, {x: 320, y: 650}
+    ]
+  },
+  circuit: {
+    id: 'circuit', name: 'Гран-При Арена', roadWidth: 215, worldW: 3600, worldH: 2600,
+    points: [
+      {x: 550, y: 400}, {x: 1550, y: 400}, {x: 2550, y: 400},
+      {x: 3150, y: 620}, {x: 3200, y: 1150}, {x: 2700, y: 1380},
+      {x: 2150, y: 1200}, {x: 1850, y: 1520}, {x: 2450, y: 1850},
+      {x: 3050, y: 2050}, {x: 2750, y: 2320}, {x: 1650, y: 2280},
+      {x: 750, y: 2220}, {x: 420, y: 1750}, {x: 780, y: 1320},
+      {x: 420, y: 850}
+    ]
+  },
+  hairpin: {
+    id: 'hairpin', name: 'Горный Серпантин', roadWidth: 200, worldW: 3500, worldH: 2700,
+    points: [
+      {x: 500, y: 380}, {x: 1650, y: 380}, {x: 2850, y: 420},
+      {x: 3120, y: 780}, {x: 2550, y: 960}, {x: 1350, y: 880},
+      {x: 1050, y: 1180}, {x: 1450, y: 1420}, {x: 2850, y: 1450},
+      {x: 3120, y: 1820}, {x: 2600, y: 2150}, {x: 1450, y: 1950},
+      {x: 1050, y: 2250}, {x: 520, y: 2350}, {x: 360, y: 1650},
+      {x: 380, y: 920}
+    ]
+  }
+};
+
+// ======================= SAVE / STORAGE =======================
+const STORAGE_KEY = 'turbo_racing_pro_v2';
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        nick: parsed.nick || 'Гонщик1',
+        carType: parsed.carType || 'sport',
+        color: parsed.color || '#ff3366',
+        settings: {
+          gfx: 'high',
+          ctrl: 'buttons',
+          sfx: 'on',
+          bgm: 'on',
+          steerSens: 100,
+          maxSpdMult: 100,
+          camDist: 100,
+          camAngle: 'dynamic',
+          ...(parsed.settings || {})
+        },
+        records: { oval: [], circuit: [], hairpin: [], ...(parsed.records || {}) },
+        bestLaps: { oval: null, circuit: null, hairpin: null, ...(parsed.bestLaps || {}) }
+      };
+    }
+  } catch (e) {}
+  return {
+    nick: 'Гонщик1',
+    carType: 'sport',
+    color: '#ff3366',
+    settings: {
+      gfx: 'high', ctrl: 'buttons', sfx: 'on', bgm: 'on',
+      steerSens: 100, maxSpdMult: 100, camDist: 100, camAngle: 'dynamic'
+    },
+    records: { oval: [], circuit: [], hairpin: [] },
+    bestLaps: { oval: null, circuit: null, hairpin: null }
+  };
+}
+const saveData = loadSave();
+function persistSave() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData)); } catch (e) {}
+}
+
+// ======================= FULLSCREEN API =======================
+function isFullscreenActive() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+}
+
+function updateFullscreenButtons() {
+  const active = isFullscreenActive();
+  const menuBtn = $('btnFullscreenMenu');
+  const pauseBtn = $('btnPauseFullscreen');
+  const hudBtn = $('fsHudBtn');
+  if (menuBtn) menuBtn.textContent = active ? '⛶ Выйти из полн. экр.' : '⛶ Полный экран';
+  if (pauseBtn) pauseBtn.textContent = active ? '⛶ Выйти из полного экрана' : '⛶ Полный экран';
+  if (hudBtn) hudBtn.textContent = active ? '🗗' : '⛶';
+}
+
+async function toggleFullscreen() {
+  const hint = $('fsStatusHint');
+  try {
+    if (!isFullscreenActive()) {
+      const el = document.documentElement;
+      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+      if (!req) {
+        throw new Error('Fullscreen API не поддерживается в этом браузере');
+      }
+      await req.call(el);
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(() => {});
+      }
+      if (hint) hint.classList.add('hidden');
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+      if (exit) await exit.call(document);
+    }
+  } catch (err) {
+    if (hint) {
+      hint.textContent = 'Браузер ограничил автоматический полный экран (нажмите F11 или добавьте на главный экран)';
+      hint.classList.remove('hidden');
+      setTimeout(() => hint.classList.add('hidden'), 5000);
+    }
+    if (state.inGame) {
+      showBanner('Полный экран недоступен в этом режиме браузера', '#ffcc00', 1600);
+    }
+  } finally {
+    updateFullscreenButtons();
+    setTimeout(resize, 120);
+  }
+}
+
+document.addEventListener('fullscreenchange', () => { updateFullscreenButtons(); resize(); });
+document.addEventListener('webkitfullscreenchange', () => { updateFullscreenButtons(); resize(); });
+
+// ======================= WEB AUDIO ENGINE =======================
+class SoundEngine {
+  constructor() {
+    this.ctx = null;
+    this.engineOsc = null;
+    this.engineSub = null;
+    this.engineGain = null;
+    this.skidGain = null;
+    this.bgmTimer = null;
+    this.initialized = false;
+  }
+  init() {
+    if (this.initialized) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AC();
+
+      this.engineOsc = this.ctx.createOscillator();
+      this.engineSub = this.ctx.createOscillator();
+      this.engineGain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 380;
+
+      this.engineOsc.type = 'sawtooth';
+      this.engineSub.type = 'triangle';
+      this.engineOsc.frequency.value = 55;
+      this.engineSub.frequency.value = 27.5;
+      this.engineGain.gain.value = 0.0001;
+
+      this.engineOsc.connect(filter);
+      this.engineSub.connect(filter);
+      filter.connect(this.engineGain);
+      this.engineGain.connect(this.ctx.destination);
+      this.engineOsc.start();
+      this.engineSub.start();
+
+      const bufSize = this.ctx.sampleRate * 1.5;
+      const noiseBuf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+      const data = noiseBuf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = noiseBuf;
+      noise.loop = true;
+
+      const bandpass = this.ctx.createBiquadFilter();
+      bandpass.type = 'bandpass';
+      bandpass.frequency.value = 1150;
+      bandpass.Q.value = 4.5;
+
+      this.skidGain = this.ctx.createGain();
+      this.skidGain.gain.value = 0.0001;
+      noise.connect(bandpass);
+      bandpass.connect(this.skidGain);
+      this.skidGain.connect(this.ctx.destination);
+      noise.start();
+
+      this.initialized = true;
+    } catch (e) {}
+  }
+  resume() {
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  }
+  updateEngine(rpm, throttle, driftIntensity, active) {
+    if (!this.initialized || !this.ctx) return;
+    const enabled = saveData.settings.sfx === 'on' && active;
+    const now = this.ctx.currentTime;
+    if (!enabled) {
+      this.engineGain.gain.setTargetAtTime(0.0001, now, 0.05);
+      this.skidGain.gain.setTargetAtTime(0.0001, now, 0.05);
+      return;
+    }
+    const freq = 42 + (rpm / 8500) * 145;
+    this.engineOsc.frequency.setTargetAtTime(freq, now, 0.03);
+    this.engineSub.frequency.setTargetAtTime(freq * 0.5, now, 0.03);
+    const vol = 0.035 + (throttle ? 0.035 : 0.01) + (rpm / 8500) * 0.03;
+    this.engineGain.gain.setTargetAtTime(vol, now, 0.04);
+
+    const skidVol = driftIntensity > 0.25 ? Math.min(0.08, (driftIntensity - 0.25) * 0.1) : 0.0001;
+    this.skidGain.gain.setTargetAtTime(skidVol, now, 0.04);
+  }
+  playBeep(freq = 440, dur = 0.14, type = 'sine', vol = 0.09) {
+    if (saveData.settings.sfx !== 'on') return;
+    this.init();
+    this.resume();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    g.gain.setValueAtTime(vol, now);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.connect(g);
+    g.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + dur + 0.02);
+  }
+  playCrash(intensity = 0.5) {
+    this.playBeep(95, 0.18, 'sawtooth', Math.min(0.16, 0.05 + intensity * 0.12));
+  }
+  startBgm() {
+    if (this.bgmTimer) return;
+    const notes = [110, 110, 130.8, 146.8, 110, 110, 164.8, 146.8];
+    let step = 0;
+    this.bgmTimer = setInterval(() => {
+      if (saveData.settings.bgm !== 'on' || !state.inGame || state.paused) return;
+      this.init();
+      this.resume();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(notes[step % notes.length], now);
+      g.gain.setValueAtTime(0.025, now);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+      osc.connect(g);
+      g.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.24);
+      step++;
+    }, 260);
+  }
+}
+const sound = new SoundEngine();
+
+// ======================= GEOMETRY & TRACK BUILDER =======================
+function buildTrackCache(trackKey) {
+  const def = TRACKS[trackKey] || TRACKS.oval;
+  const pts = def.points;
+  const spline = [];
+  const stepsPerSeg = 24;
+
+  for (let i = 0; i < pts.length; i++) {
+    const p0 = pts[(i - 1 + pts.length) % pts.length];
+    const p1 = pts[i];
+    const p2 = pts[(i + 1) % pts.length];
+    const p3 = pts[(i + 2) % pts.length];
+
+    for (let s = 0; s < stepsPerSeg; s++) {
+      const t = s / stepsPerSeg;
+      const t2 = t * t;
+      const t3 = t2 * t;
+      const x = 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t +
+        (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+        (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3);
+      const y = 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t +
+        (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+        (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3);
+      spline.push({ x, y });
+    }
+  }
+
+  const segments = [];
+  let totalLen = 0;
+  for (let i = 0; i < spline.length; i++) {
+    const a = spline[i];
+    const b = spline[(i + 1) % spline.length];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    segments.push({
+      ax: a.x, ay: a.y, bx: b.x, by: b.y,
+      dx, dy, len,
+      tx: dx / len, ty: dy / len,
+      nx: -dy / len, ny: dx / len,
+      cumLen: totalLen
+    });
+    totalLen += len;
+  }
+
+  // Единый физический и визуальный радиус барьера трассы (исключает невидимые стены)
+  const halfW = def.roadWidth * 0.5;
+  const barrierRadius = halfW + 54;
+
+  const props = [];
+  let seed = trackKey.split('').reduce((a, c) => a + c.charCodeAt(0), 17);
+  const rand = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+
+  // Фонари строго за пределами внешнего отбойника (не пересекают трассу и не создают препятствий)
+  for (let i = 0; i < segments.length; i += 14) {
+    const seg = segments[i];
+    const side = (i % 28 === 0) ? 1 : -1;
+    const lx = seg.ax + seg.nx * side * (barrierRadius + 24);
+    const ly = seg.ay + seg.ny * side * (barrierRadius + 24);
+    const check = queryTrackInfoRaw(lx, ly, segments);
+    if (check.dist >= barrierRadius + 16) {
+      props.push({ type: 'lamp', x: lx, y: ly, angle: Math.atan2(-seg.ny * side, -seg.nx * side) });
+    }
+  }
+
+  // Трибуна за внешним отбойником возле стартовых ворот
+  const s0 = segments[0];
+  const standX = s0.ax - s0.nx * (barrierRadius + 46);
+  const standY = s0.ay - s0.ny * (barrierRadius + 46);
+  props.push({
+    type: 'grandstand',
+    x: standX,
+    y: standY,
+    angle: Math.atan2(s0.ty, s0.tx)
+  });
+
+  // Деревья строго вне зоны трассы и отбойника
+  for (let i = 0; i < 160; i++) {
+    const tx = 80 + rand() * (def.worldW - 160);
+    const ty = 80 + rand() * (def.worldH - 160);
+    const info = queryTrackInfoRaw(tx, ty, segments);
+    if (info.dist > barrierRadius + 38) {
+      props.push({ type: 'tree', x: tx, y: ty, r: 16 + rand() * 14 });
+    }
+  }
+
+  const bgCanvas = document.createElement('canvas');
+  bgCanvas.width = def.worldW;
+  bgCanvas.height = def.worldH;
+  const bctx = bgCanvas.getContext('2d');
+  renderTrackToOffscreen(bctx, def, spline, segments, props, barrierRadius);
+
+  return { def, spline, segments, totalLen, props, bgCanvas, barrierRadius };
+}
+
+function queryTrackInfoRaw(x, y, segments) {
+  let bestDistSq = Infinity;
+  let bestSegIdx = 0;
+  let bestT = 0;
+  let projX = x, projY = y;
+
+  for (let i = 0; i < segments.length; i++) {
+    const s = segments[i];
+    const vx = x - s.ax;
+    const vy = y - s.ay;
+    const t = Math.max(0, Math.min(1, (vx * s.dx + vy * s.dy) / (s.len * s.len)));
+    const px = s.ax + s.dx * t;
+    const py = s.ay + s.dy * t;
+    const dSq = (x - px) * (x - px) + (y - py) * (y - py);
+    if (dSq < bestDistSq) {
+      bestDistSq = dSq;
+      bestSegIdx = i;
+      bestT = t;
+      projX = px;
+      projY = py;
+    }
+  }
+  const seg = segments[bestSegIdx];
+  const progress = (seg.cumLen + bestT * seg.len);
+  return {
+    dist: Math.sqrt(bestDistSq),
+    segIdx: bestSegIdx,
+    seg,
+    projX,
+    projY,
+    progress
+  };
+}
+
+function renderTrackToOffscreen(c, def, spline, segments, props, barrierRadius) {
+  c.fillStyle = def.id === 'hairpin' ? '#2c4a2e' : '#264d24';
+  c.fillRect(0, 0, def.worldW, def.worldH);
+
+  c.fillStyle = 'rgba(255,255,255,0.025)';
+  for (let x = 0; x < def.worldW; x += 80) {
+    for (let y = 0; y < def.worldH; y += 80) {
+      if (((x + y) / 80) % 2 === 0) c.fillRect(x, y, 80, 80);
+    }
+  }
+
+  const drawClosedPath = () => {
+    c.beginPath();
+    c.moveTo(spline[0].x, spline[0].y);
+    for (let i = 1; i < spline.length; i++) c.lineTo(spline[i].x, spline[i].y);
+    c.closePath();
+  };
+
+  c.lineJoin = 'round';
+  c.lineCap = 'round';
+
+  // Внешнее ограждение (визуальная граница точно совпадает с barrierRadius + радиус авто)
+  drawClosedPath();
+  c.strokeStyle = '#8b93a6';
+  c.lineWidth = (barrierRadius + 20) * 2;
+  c.stroke();
+
+  // Внешняя гравийная обочина
+  drawClosedPath();
+  c.strokeStyle = '#6c665d';
+  c.lineWidth = def.roadWidth + 88;
+  c.stroke();
+
+  // Красно-белые поребрики
+  drawClosedPath();
+  c.strokeStyle = '#d9383a';
+  c.lineWidth = def.roadWidth + 18;
+  c.stroke();
+
+  drawClosedPath();
+  c.strokeStyle = '#f1f1f1';
+  c.lineWidth = def.roadWidth + 18;
+  c.setLineDash([28, 28]);
+  c.stroke();
+  c.setLineDash([]);
+
+  // Основное полотно асфальта
+  drawClosedPath();
+  c.strokeStyle = '#33363f';
+  c.lineWidth = def.roadWidth;
+  c.stroke();
+
+  // Внутренняя текстура асфальта
+  drawClosedPath();
+  c.strokeStyle = '#3b3f4a';
+  c.lineWidth = def.roadWidth - 24;
+  c.stroke();
+
+  // Осевая пунктирная разметка
+  drawClosedPath();
+  c.strokeStyle = 'rgba(255,255,255,0.28)';
+  c.lineWidth = 3;
+  c.setLineDash([34, 34]);
+  c.stroke();
+  c.setLineDash([]);
+
+  // Линия Старт/Финиш и открытые стартовые ворота (опоры строго за пределами дороги)
+  const s0 = segments[0];
+  c.save();
+  c.translate(s0.ax, s0.ay);
+  c.rotate(Math.atan2(s0.ty, s0.tx));
+  const halfW = def.roadWidth * 0.5;
+  const rows = Math.floor(def.roadWidth / 16);
+  for (let r = 0; r < rows; r++) {
+    for (let col = 0; col < 3; col++) {
+      c.fillStyle = (r + col) % 2 === 0 ? '#ffffff' : '#111318';
+      c.fillRect(-24 + col * 16, -halfW + r * 16, 16, 16);
+    }
+  }
+  // Опоры стартовых ворот за отбойником (проезд полностью свободен)
+  const gateOffset = barrierRadius + 16;
+  c.fillStyle = '#ff3366';
+  c.fillRect(-10, -gateOffset - 12, 20, 14);
+  c.fillRect(-10, gateOffset - 2, 20, 14);
+  c.fillStyle = 'rgba(255,255,255,0.16)';
+  c.fillRect(-4, -gateOffset, 8, gateOffset * 2);
+  c.restore();
+
+  // Статичные декорации
+  for (const p of props) {
+    if (p.type === 'grandstand') {
+      c.save();
+      c.translate(p.x, p.y);
+      c.rotate(p.angle);
+      c.fillStyle = '#222634';
+      c.fillRect(-130, -24, 260, 48);
+      c.fillStyle = '#ff3366';
+      c.fillRect(-130, -24, 260, 8);
+      for (let i = -115; i <= 115; i += 14) {
+        c.fillStyle = (Math.abs(i) % 28 === 0) ? '#ffcc00' : '#33ccff';
+        c.fillRect(i, -10, 8, 8);
+        c.fillRect(i, 4, 8, 8);
+      }
+      c.restore();
+    } else if (p.type === 'tree') {
+      c.fillStyle = 'rgba(0,0,0,0.28)';
+      c.beginPath(); c.arc(p.x + 5, p.y + 6, p.r, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#1b3b19';
+      c.beginPath(); c.arc(p.x, p.y, p.r, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#2e5e2a';
+      c.beginPath(); c.arc(p.x - p.r * 0.2, p.y - p.r * 0.2, p.r * 0.65, 0, Math.PI * 2); c.fill();
+    } else if (p.type === 'lamp') {
+      c.fillStyle = '#555b6e';
+      c.beginPath(); c.arc(p.x, p.y, 5, 0, Math.PI * 2); c.fill();
+    }
+  }
+}
+
+// ======================= STATE =======================
+const state = {
+  socket: null,
+  myId: 'local_player',
+  roomCode: null,
+  isMultiplayer: false,
+  isHost: true,
+  inGame: false,
+  paused: false,
+  countdown: 0,
+  raceStartTime: 0,
+  elapsedTime: 0,
+
+  raceSettings: {
+    track: 'oval',
+    weather: 'clear',
+    timeOfDay: 'day',
+    laps: 3,
+    aiCount: 2,
+    difficulty: 'medium'
+  },
+
+  trackCache: null,
+  cars: [],
+  remotePlayers: {},
+
+  inputs: { up: false, down: false, left: false, right: false, drift: false, steerAnalog: 0 },
+  cam: { x: 500, y: 400, zoom: 1, angle: 0 },
+
+  skidmarks: [],
+  particles: [],
+  rainDrops: [],
+  confetti: [],
+
+  replayFrames: [],
+  replayMode: false,
+  replayPaused: false,
+  replayIdx: 0,
+  replayAccum: 0,
+
+  lastSend: 0,
+  lastFrameTime: performance.now(),
+  overtakeCooldown: 0,
+  lastRank: 1
+};
+
+// ======================= CANVAS & RESIZE =======================
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d', { alpha: false });
+const miniCanvas = document.getElementById('minimap');
+const mctx = miniCanvas.getContext('2d');
+let W = 800, H = 600, DPR = 1;
+
+function resize() {
+  const gfx = saveData.settings.gfx;
+  const maxDpr = gfx === 'low' ? 1 : (gfx === 'medium' ? 1.5 : 2);
+  DPR = Math.min(window.devicePixelRatio || 1, maxDpr);
+  W = canvas.width = Math.floor(window.innerWidth * DPR);
+  H = canvas.height = Math.floor(window.innerHeight * DPR);
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = window.innerHeight + 'px';
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 200));
+resize();
+
+// ======================= UI INITIALIZATION =======================
+const $ = id => document.getElementById(id);
+
+function initUI() {
+  $('nick').value = saveData.nick || 'Гонщик1';
+  updateFullscreenButtons();
+
+  const carGrid = $('carGrid');
+  carGrid.innerHTML = '';
+  Object.values(CARS).forEach(car => {
+    const el = document.createElement('div');
+    el.className = 'car-card' + (saveData.carType === car.id ? ' active' : '');
+    el.dataset.id = car.id;
+    el.innerHTML = `
+      <div class="car-name">${car.name}</div>
+      <div class="car-desc">${car.desc}</div>
+      <div class="stat-lbl"><span>Скорость</span><span>${car.stats.speed}%</span></div>
+      <div class="stat-bar"><div class="stat-fill" style="width:${car.stats.speed}%"></div></div>
+      <div class="stat-lbl"><span>Разгон</span><span>${car.stats.accel}%</span></div>
+      <div class="stat-bar"><div class="stat-fill" style="width:${car.stats.accel}%"></div></div>
+      <div class="stat-lbl"><span>Управл.</span><span>${car.stats.handling}%</span></div>
+      <div class="stat-bar"><div class="stat-fill" style="width:${car.stats.handling}%"></div></div>
+    `;
+    el.onclick = () => {
+      saveData.carType = car.id;
+      persistSave();
+      document.querySelectorAll('.car-card').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      sound.playBeep(520, 0.06);
+      syncLobbyProfile();
+    };
+    carGrid.appendChild(el);
+  });
+
+  const colorsEl = $('colors');
+  colorsEl.innerHTML = '';
+  COLORS.forEach(col => {
+    const d = document.createElement('div');
+    d.className = 'swatch' + (saveData.color === col ? ' active' : '');
+    d.style.background = col;
+    d.onclick = () => {
+      saveData.color = col;
+      persistSave();
+      document.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+      d.classList.add('active');
+      sound.playBeep(600, 0.06);
+      syncLobbyProfile();
+    };
+    colorsEl.appendChild(d);
+  });
+
+  // Настройки ползунков
+  const steerRng = $('steerSensRng');
+  steerRng.value = saveData.settings.steerSens || 100;
+  $('steerSensVal').textContent = steerRng.value + '%';
+  steerRng.oninput = () => {
+    saveData.settings.steerSens = parseInt(steerRng.value, 10);
+    $('steerSensVal').textContent = saveData.settings.steerSens + '%';
+    persistSave();
+  };
+
+  const spdRng = $('maxSpdMultRng');
+  spdRng.value = saveData.settings.maxSpdMult || 100;
+  $('maxSpdMultVal').textContent = spdRng.value + '%';
+  spdRng.oninput = () => {
+    saveData.settings.maxSpdMult = parseInt(spdRng.value, 10);
+    $('maxSpdMultVal').textContent = saveData.settings.maxSpdMult + '%';
+    persistSave();
+  };
+
+  const camRng = $('camDistRng');
+  camRng.value = saveData.settings.camDist || 100;
+  $('camDistVal').textContent = camRng.value + '%';
+  camRng.oninput = () => {
+    saveData.settings.camDist = parseInt(camRng.value, 10);
+    $('camDistVal').textContent = saveData.settings.camDist + '%';
+    persistSave();
+  };
+
+  // Сегментные переключатели
+  bindSegment('trackSeg', v => { state.raceSettings.track = v; });
+  bindSegment('weatherSeg', v => { state.raceSettings.weather = v; });
+  bindSegment('timeSeg', v => { state.raceSettings.timeOfDay = v; });
+  bindSegment('aiSeg', v => { state.raceSettings.aiCount = parseInt(v, 10); });
+  bindSegment('diffSeg', v => { state.raceSettings.difficulty = v; });
+  bindSegment('lapsSeg', v => { state.raceSettings.laps = parseInt(v, 10); });
+
+  bindSegment('camAngleSeg', v => { saveData.settings.camAngle = v; persistSave(); }, saveData.settings.camAngle);
+  bindSegment('gfxSeg', v => { saveData.settings.gfx = v; persistSave(); resize(); }, saveData.settings.gfx);
+  bindSegment('ctrlSeg', v => { saveData.settings.ctrl = v; persistSave(); applyControlLayout(); }, saveData.settings.ctrl);
+  bindSegment('sfxSeg', v => { saveData.settings.sfx = v; persistSave(); }, saveData.settings.sfx);
+  bindSegment('bgmSeg', v => { saveData.settings.bgm = v; persistSave(); }, saveData.settings.bgm);
+  bindSegment('recTrackSeg', v => { renderRecordsTable(v); }, 'oval');
+
+  // Поддержка прокрутки меню перетаскиванием мышью на ПК (в дополнение к колёсику и тачу)
+  enableDragScroll($('menu'));
+  enableDragScroll($('settingsOverlay'));
+  enableDragScroll($('recordsOverlay'));
+  enableDragScroll($('finishOverlay'));
+}
+
+function enableDragScroll(el) {
+  if (!el) return;
+  let isDown = false;
+  let startY = 0;
+  let scrollTop = 0;
+  let moved = false;
+
+  el.addEventListener('mousedown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.type === 'range') return;
+    isDown = true;
+    moved = false;
+    startY = e.pageY - el.offsetTop;
+    scrollTop = el.scrollTop;
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    const y = e.pageY - el.offsetTop;
+    const walk = y - startY;
+    if (Math.abs(walk) > 4) moved = true;
+    if (moved) el.scrollTop = scrollTop - walk;
+  });
+  window.addEventListener('mouseup', () => { isDown = false; });
+}
+
+function bindSegment(id, onChange, initialVal) {
+  const wrap = $(id);
+  if (!wrap) return;
+  const btns = wrap.querySelectorAll('button');
+  if (initialVal !== undefined) {
+    btns.forEach(b => b.classList.toggle('active', b.dataset.v === String(initialVal)));
+  }
+  btns.forEach(b => {
+    b.onclick = () => {
+      btns.forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      sound.playBeep(480, 0.05);
+      onChange(b.dataset.v);
+    };
+  });
+}
+
+function applyControlLayout() {
+  const isWheel = saveData.settings.ctrl === 'wheel';
+  $('steerBtns').classList.toggle('hidden', isWheel);
+  $('wheelWrap').classList.toggle('hidden', !isWheel);
+}
+
+// ======================= SOCKET.IO MULTIPLAYER =======================
+let socket = null;
+try {
+  if (typeof io !== 'undefined') {
+    socket = io({
+      reconnection: true,
+      reconnectionAttempts: 15,
+      reconnectionDelay: 1000
+    });
+    state.socket = socket;
+
+    socket.on('connect', () => {
+      $('netToast').classList.add('hidden');
+      const prevId = state.myId;
+      state.myId = socket.id;
+
+      // Автоматическое восстановление комнаты при потере соединения
+      if (state.isMultiplayer && state.roomCode && prevId && prevId !== socket.id) {
+        socket.emit('rejoinRoom', {
+          code: state.roomCode,
+          oldId: prevId,
+          name: saveData.nick,
+          color: saveData.color,
+          carType: saveData.carType
+        }, (res) => {
+          if (res && res.ok) {
+            const myCar = state.cars.find(c => c.isMe);
+            if (myCar) myCar.id = socket.id;
+            showBanner('Соединение восстановлено', '#28c76f', 1200);
+          } else {
+            showBanner('Сессия завершена сервером', '#ff5566', 1800);
+            exitToMenu();
+          }
+        });
+      }
+    });
+
+    socket.on('disconnect', () => {
+      if (state.isMultiplayer) {
+        $('netToast').textContent = 'Связь потеряна. Переподключение...';
+        $('netToast').classList.remove('hidden');
+      }
+    });
+
+    socket.on('roomUpdated', (roomState) => {
+      if (!roomState) return;
+      state.isHost = roomState.hostId === state.myId;
+      state.raceSettings = { ...state.raceSettings, ...roomState.settings };
+      renderLobby(roomState);
+    });
+
+    socket.on('gameStarted', (roomState) => {
+      state.isHost = roomState.hostId === state.myId;
+      state.raceSettings = { ...state.raceSettings, ...roomState.settings };
+      startRace(true, roomState.players);
+    });
+
+    socket.on('countdown', (num) => {
+      state.countdown = num;
+      showCountdownBanner(num);
+      sound.playBeep(440, 0.16);
+    });
+
+    socket.on('raceGo', () => {
+      state.countdown = 0;
+      state.raceStartTime = performance.now();
+      const myCar = getMyCar();
+      if (myCar) myCar.lapStartTime = state.raceStartTime;
+      showBanner('ВПЕРЁД!', '#28c76f', 1100);
+      sound.playBeep(880, 0.28);
+    });
+
+    socket.on('playerUpdate', (d) => {
+      const prev = state.remotePlayers[d.id];
+      d.recvAt = performance.now();
+      if (prev) {
+        d.prevX = prev.x;
+        d.prevY = prev.y;
+      }
+      state.remotePlayers[d.id] = d;
+    });
+
+    socket.on('playerRejoined', ({ oldId, player, hostId }) => {
+      if (hostId === state.myId) state.isHost = true;
+      const car = state.cars.find(c => c.id === oldId);
+      if (car && player) {
+        car.id = player.id;
+        car.disconnected = false;
+      }
+      delete state.remotePlayers[oldId];
+    });
+
+    socket.on('playerFinished', (info) => {
+      if (info.records && state.raceSettings.track) {
+        saveData.records[state.raceSettings.track] = mergeRecords(
+          saveData.records[state.raceSettings.track] || [],
+          info.records
+        );
+        persistSave();
+      }
+    });
+
+    socket.on('playerLeft', ({ id, newHostId }) => {
+      delete state.remotePlayers[id];
+      state.cars = state.cars.filter(c => c.id !== id);
+      if (newHostId === state.myId) state.isHost = true;
+    });
+  }
+} catch (e) {}
+
+function syncLobbyProfile() {
+  if (state.isMultiplayer && socket && state.roomCode && !state.inGame) {
+    socket.emit('updatePlayerProfile', {
+      name: $('nick').value.trim() || 'Гонщик',
+      color: saveData.color,
+      carType: saveData.carType
+    });
+  }
+}
+
+function showError(msg) {
+  $('err').textContent = msg;
+  setTimeout(() => { $('err').textContent = ''; }, 4000);
+}
+
+// ======================= MENU & LOBBY ACTIONS =======================
+$('btnFullscreenMenu').onclick = toggleFullscreen;
+$('btnPauseFullscreen').onclick = toggleFullscreen;
+$('fsHudBtn').onclick = toggleFullscreen;
+
+$('btnSolo').onclick = () => {
+  saveData.nick = $('nick').value.trim() || 'Гонщик1';
+  persistSave();
+  sound.init();
+  sound.resume();
+  sound.startBgm();
+  state.isMultiplayer = false;
+  state.isHost = true;
+  state.roomCode = null;
+  startRace(false, [{
+    id: state.myId,
+    name: saveData.nick,
+    color: saveData.color,
+    carType: saveData.carType
+  }]);
+};
+
+$('btnCreate').onclick = () => {
+  if (!socket || !socket.connected) return showError('Сервер мультиплеера недоступен. Доступна одиночная игра!');
+  saveData.nick = $('nick').value.trim() || 'Гонщик1';
+  persistSave();
+  sound.init();
+  sound.resume();
+  socket.emit('createRoom', {
+    name: saveData.nick,
+    color: saveData.color,
+    carType: saveData.carType,
+    settings: state.raceSettings
+  }, (res) => {
+    if (!res || !res.ok) return showError(res?.error || 'Ошибка создания комнаты');
+    state.isMultiplayer = true;
+    state.isHost = true;
+    state.roomCode = res.state.code;
+    $('menu').classList.add('hidden');
+    $('lobby').classList.remove('hidden');
+    renderLobby(res.state);
+  });
+};
+
+$('btnJoin').onclick = () => {
+  if (!socket || !socket.connected) return showError('Сервер мультиплеера недоступен');
+  const code = $('code').value.trim().toUpperCase();
+  if (code.length !== 5) return showError('Введите 5-значный код комнаты');
+  saveData.nick = $('nick').value.trim() || 'Гонщик1';
+  persistSave();
+  sound.init();
+  sound.resume();
+  socket.emit('joinRoom', {
+    code,
+    name: saveData.nick,
+    color: saveData.color,
+    carType: saveData.carType
+  }, (res) => {
+    if (!res || !res.ok) return showError(res?.error || 'Не удалось войти');
+    state.isMultiplayer = true;
+    state.isHost = res.state.hostId === state.myId;
+    state.roomCode = res.state.code;
+    $('menu').classList.add('hidden');
+    $('lobby').classList.remove('hidden');
+    renderLobby(res.state);
+  });
+};
+
+function renderLobby(roomState) {
+  $('roomCodeLbl').textContent = roomState.code;
+  $('lobbyTrackLbl').textContent = TRACKS[roomState.settings.track]?.name || 'Овал';
+  $('lobbyAiCount').textContent = roomState.settings.aiCount;
+  $('plCount').textContent = roomState.players.length;
+  $('btnStart').style.display = state.isHost ? 'block' : 'none';
+
+  const box = $('plBox');
+  box.innerHTML = '';
+  roomState.players.forEach(p => {
+    const carName = CARS[p.carType]?.name || 'Apex GT';
+    const d = document.createElement('div');
+    d.className = 'pl-item';
+    d.innerHTML = `
+      <div class="pl-left">
+        <div class="pl-dot" style="background:${p.color}"></div>
+        <span><b>${escapeHtml(p.name)}</b>${p.id === state.myId ? ' (Вы)' : ''}</span>
+      </div>
+      <span style="color:#9aa0b8;font-size:12px">${carName}</span>
+    `;
+    box.appendChild(d);
+  });
+}
+
+$('btnStart').onclick = () => {
+  if (state.isMultiplayer && socket) {
+    socket.emit('startGame');
+  }
+};
+
+$('btnLeave').onclick = () => {
+  state.isMultiplayer = false;
+  state.roomCode = null;
+  if (socket && socket.connected) {
+    socket.disconnect();
+    setTimeout(() => socket.connect(), 150);
+  }
+  $('lobby').classList.add('hidden');
+  $('menu').classList.remove('hidden');
+};
+
+$('btnSettingsOpen').onclick = () => $('settingsOverlay').classList.remove('hidden');
+$('btnPauseSettings').onclick = () => $('settingsOverlay').classList.remove('hidden');
+$('btnSettingsClose').onclick = () => $('settingsOverlay').classList.add('hidden');
+
+$('btnRecordsOpen').onclick = () => {
+  renderRecordsTable(state.raceSettings.track);
+  $('recordsOverlay').classList.remove('hidden');
+};
+$('btnRecordsClose').onclick = () => $('recordsOverlay').classList.add('hidden');
+
+$('pauseBtn').onclick = () => togglePause(true);
+$('btnResume').onclick = () => togglePause(false);
+$('camBtn').onclick = () => {
+  const modes = ['dynamic', 'fixed', 'chase'];
+  const labels = { dynamic: 'Камера: Динамическая', fixed: 'Камера: Центр', chase: 'Камера: Поворот за авто' };
+  const idx = (modes.indexOf(saveData.settings.camAngle) + 1) % modes.length;
+  saveData.settings.camAngle = modes[idx];
+  persistSave();
+  bindSegment('camAngleSeg', v => { saveData.settings.camAngle = v; persistSave(); }, saveData.settings.camAngle);
+  showBanner(labels[saveData.settings.camAngle], '#33ccff', 950);
+};
+
+$('btnRestartSolo').onclick = () => {
+  togglePause(false);
+  if (!state.isMultiplayer) {
+    $('btnSolo').click();
+  }
+};
+
+$('btnExitRace').onclick = () => exitToMenu();
+$('btnFinishMenu').onclick = () => exitToMenu();
+$('btnFinishRestart').onclick = () => {
+  $('finishOverlay').classList.add('hidden');
+  if (!state.isMultiplayer) $('btnSolo').click();
+  else exitToMenu();
+};
+
+function togglePause(p) {
+  state.paused = p;
+  $('pauseOverlay').classList.toggle('hidden', !p);
+  if (!p) state.lastFrameTime = performance.now();
+}
+
+function exitToMenu() {
+  state.inGame = false;
+  state.paused = false;
+  state.replayMode = false;
+  resetAllInputs();
+  sound.updateEngine(1000, false, 0, false);
+  $('hud').classList.add('hidden');
+  $('controls').classList.add('hidden');
+  $('pauseOverlay').classList.add('hidden');
+  $('finishOverlay').classList.add('hidden');
+  $('replayBar').classList.add('hidden');
+  $('banner').classList.add('hidden');
+  $('netToast').classList.add('hidden');
+  if (state.isMultiplayer && socket) {
+    state.isMultiplayer = false;
+    state.roomCode = null;
+    socket.disconnect();
+    setTimeout(() => socket.connect(), 150);
+  }
+  $('menu').classList.remove('hidden');
+}
+
+// ======================= START RACE & ENTITY SPAWN =======================
+function createCarEntity({ id, name, color, carType, isMe, isAi, slotIndex, trackCache }) {
+  const spec = CARS[carType] || CARS.sport;
+  const s0 = trackCache.segments[0];
+  const trackAngle = Math.atan2(s0.ty, s0.tx);
+  const row = Math.floor(slotIndex / 2);
+  const col = (slotIndex % 2 === 0) ? -1 : 1;
+
+  // Стартовая решётка позади линии финиша строго в пределах полотна
+  const startBackOffset = 58 + row * 64;
+  const startX = s0.ax - s0.tx * startBackOffset + s0.nx * col * 36;
+  const startY = s0.ay - s0.ty * startBackOffset + s0.ny * col * 36;
+
+  return {
+    id, name, color, carType, spec,
+    isMe: !!isMe,
+    isAi: !!isAi,
+    x: startX,
+    y: startY,
+    vx: 0,
+    vy: 0,
+    angle: trackAngle,
+    speed: 0,
+    angularVel: 0,
+    steerInput: 0,
+    driftAmount: 0,
+    braking: false,
+    gear: 1,
+    rpm: 1000,
+    pitch: 0,
+    roll: 0,
+    suspensionOffset: 0,
+
+    lap: 1,
+    lapStartTime: 0,
+    currentLapTime: 0,
+    bestLapTime: null,
+    lastProgress: trackCache.totalLen - startBackOffset,
+    totalDistance: -startBackOffset,
+    passedMidpoint: false,
+    offTrackTimer: 0,
+    penaltyTime: 0,
+    finished: false,
+    finishTime: null,
+
+    aiLaneOffset: col * (22 + (slotIndex * 11) % 35),
+    aiSkill: state.raceSettings.difficulty === 'hard' ? 1.02 : (state.raceSettings.difficulty === 'easy' ? 0.82 : 0.92)
+  };
+}
+
+function startRace(isMulti, humanPlayers) {
+  $('menu').classList.add('hidden');
+  $('lobby').classList.add('hidden');
+  $('finishOverlay').classList.add('hidden');
+  $('replayBar').classList.add('hidden');
+  $('hud').classList.remove('hidden');
+  $('controls').classList.remove('hidden');
+  resetAllInputs();
+  applyControlLayout();
+
+  const trackKey = state.raceSettings.track;
+  state.trackCache = buildTrackCache(trackKey);
+  state.cars = [];
+  state.remotePlayers = {};
+  state.skidmarks = [];
+  state.particles = [];
+  state.confetti = [];
+  state.replayFrames = [];
+  state.replayMode = false;
+  state.paused = false;
+  state.elapsedTime = 0;
+  state.overtakeCooldown = 0;
+
+  $('lapMax').textContent = state.raceSettings.laps;
+  $('penBox').classList.add('hidden');
+  const savedBest = saveData.bestLaps[trackKey];
+  $('bestLapLbl').textContent = savedBest ? formatTime(savedBest) : '--:--.-';
+
+  let slot = 0;
+  humanPlayers.forEach(p => {
+    const isMe = p.id === state.myId;
+    state.cars.push(createCarEntity({
+      id: p.id,
+      name: p.name,
+      color: p.color,
+      carType: p.carType,
+      isMe,
+      isAi: false,
+      slotIndex: slot++,
+      trackCache: state.trackCache
+    }));
+  });
+
+  const aiNames = ['Макс AI', 'Артём AI', 'Кира AI', 'Дрифт-Кинг AI', 'Вектор AI'];
+  const aiTypes = ['sport', 'muscle', 'drift', 'hyper'];
+  const aiColors = ['#33ccff', '#ffcc00', '#9966ff', '#00ffcc', '#ff8800'];
+  const aiCount = (!isMulti || state.isHost) ? state.raceSettings.aiCount : 0;
+
+  for (let i = 0; i < aiCount; i++) {
+    state.cars.push(createCarEntity({
+      id: 'ai_' + i,
+      name: aiNames[i % aiNames.length],
+      color: aiColors[i % aiColors.length],
+      carType: aiTypes[(i + 1) % aiTypes.length],
+      isMe: false,
+      isAi: true,
+      slotIndex: slot++,
+      trackCache: state.trackCache
+    }));
+  }
+
+  state.rainDrops = [];
+  if (state.raceSettings.weather === 'rain') {
+    for (let i = 0; i < 140; i++) {
+      state.rainDrops.push({
+        x: Math.random() * 1600,
+        y: Math.random() * 1000,
+        len: 12 + Math.random() * 12,
+        spd: 650 + Math.random() * 250
+      });
+    }
+  }
+
+  const myCar = getMyCar();
+  if (myCar) {
+    state.cam.x = myCar.x;
+    state.cam.y = myCar.y;
+    state.cam.angle = myCar.angle;
+  }
+
+  state.inGame = true;
+  state.lastFrameTime = performance.now();
+
+  if (!isMulti) {
+    runLocalCountdown();
+  } else {
+    state.countdown = 3;
+    showCountdownBanner(3);
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+function runLocalCountdown() {
+  state.countdown = 3;
+  showCountdownBanner(3);
+  sound.playBeep(440, 0.16);
+  const t1 = setInterval(() => {
+    if (!state.inGame) { clearInterval(t1); return; }
+    if (state.paused) return;
+    state.countdown--;
+    if (state.countdown > 0) {
+      showCountdownBanner(state.countdown);
+      sound.playBeep(440, 0.16);
+    } else {
+      clearInterval(t1);
+      state.raceStartTime = performance.now();
+      state.cars.forEach(c => { c.lapStartTime = state.raceStartTime; });
+      showBanner('СТАРТ!', '#28c76f', 1000);
+      sound.playBeep(880, 0.28);
+    }
+  }, 1000);
+}
+
+function showCountdownBanner(num) {
+  const b = $('banner');
+  b.classList.remove('hidden');
+  b.innerHTML = `
+    <div class="lights">
+      <div class="bulb ${num >= 3 ? 'red' : ''}"></div>
+      <div class="bulb ${num >= 2 ? 'red' : ''}"></div>
+      <div class="bulb ${num >= 1 ? 'red' : ''}"></div>
+    </div>
+    <div style="margin-top:8px;font-size:36px;color:#fff">${num}</div>
+  `;
+}
+
+function showBanner(text, color = '#fff', duration = 1200) {
+  const b = $('banner');
+  b.classList.remove('hidden');
+  b.innerHTML = `<div style="color:${color}">${text}</div>`;
+  clearTimeout(showBanner._t);
+  showBanner._t = setTimeout(() => b.classList.add('hidden'), duration);
+}
+
+function getMyCar() {
+  return state.cars.find(c => c.isMe) || state.cars[0];
+}
+
+// ======================= INPUT HANDLING (MULTI-TOUCH & KEYBOARD) =======================
+const activePointers = new Map(); // pointerId -> controlKey
+
+function resetAllInputs() {
+  activePointers.clear();
+  wheelPointerId = null;
+  state.inputs.up = false;
+  state.inputs.down = false;
+  state.inputs.left = false;
+  state.inputs.right = false;
+  state.inputs.drift = false;
+  state.inputs.steerAnalog = 0;
+  document.querySelectorAll('.cbtn').forEach(b => b.classList.remove('on'));
+  if ($('wheelInner')) $('wheelInner').style.transform = 'rotate(0deg)';
+}
+
+function syncPointerButtons() {
+  const counts = { up: 0, down: 0, left: 0, right: 0, drift: 0 };
+  for (const k of activePointers.values()) {
+    if (counts[k] !== undefined) counts[k]++;
+  }
+  for (const k of Object.keys(counts)) {
+    state.inputs[k] = counts[k] > 0 || !!keyboardState[k];
+  }
+  document.querySelectorAll('.cbtn').forEach(btn => {
+    const k = btn.dataset.k;
+    btn.classList.toggle('on', !!state.inputs[k]);
+  });
+}
+
+const keyboardState = { up: false, down: false, left: false, right: false, drift: false };
+const keyMap = {
+  KeyW: 'up', ArrowUp: 'up',
+  KeyS: 'down', ArrowDown: 'down',
+  KeyA: 'left', ArrowLeft: 'left',
+  KeyD: 'right', ArrowRight: 'right',
+  Space: 'drift'
+};
+
+window.addEventListener('keydown', (e) => {
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+  if (e.code === 'KeyP' || e.code === 'Escape') {
+    if (state.inGame && !state.replayMode) togglePause(!state.paused);
+    return;
+  }
+  if (e.code === 'KeyC' && state.inGame) {
+    $('camBtn').click();
+    return;
+  }
+  if (e.code === 'KeyF') {
+    toggleFullscreen();
+    return;
+  }
+  const k = keyMap[e.code];
+  if (k) {
+    e.preventDefault();
+    keyboardState[k] = true;
+    syncPointerButtons();
+    sound.init();
+    sound.resume();
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  const k = keyMap[e.code];
+  if (k) {
+    keyboardState[k] = false;
+    syncPointerButtons();
+  }
+});
+
+window.addEventListener('blur', () => {
+  Object.keys(keyboardState).forEach(k => { keyboardState[k] = false; });
+  resetAllInputs();
+});
+
+// Pointer Events для 100% надёжного мультитача без залипания и потери нажатий
+document.querySelectorAll('.cbtn').forEach(btn => {
+  const k = btn.dataset.k;
+  btn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (btn.setPointerCapture) {
+      try { btn.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+    activePointers.set(e.pointerId, k);
+    syncPointerButtons();
+    sound.init();
+    sound.resume();
+  });
+
+  const releasePointer = (e) => {
+    if (activePointers.has(e.pointerId)) {
+      activePointers.delete(e.pointerId);
+      syncPointerButtons();
+    }
+  };
+  btn.addEventListener('pointerup', releasePointer);
+  btn.addEventListener('pointercancel', releasePointer);
+  btn.addEventListener('lostpointercapture', releasePointer);
+});
+
+// Сенсорный руль на Pointer Events
+const wheelWrap = $('wheelWrap');
+const wheelInner = $('wheelInner');
+let wheelPointerId = null;
+
+function handleWheelMove(clientX, clientY) {
+  const rect = wheelWrap.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const ang = Math.atan2(clientY - cy, clientX - cx) + Math.PI / 2;
+  let norm = Math.atan2(Math.sin(ang), Math.cos(ang));
+  norm = Math.max(-1.2, Math.min(1.2, norm));
+  state.inputs.steerAnalog = norm / 1.2;
+  wheelInner.style.transform = `rotate(${(state.inputs.steerAnalog * 75).toFixed(1)}deg)`;
+}
+
+wheelWrap.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  wheelPointerId = e.pointerId;
+  if (wheelWrap.setPointerCapture) {
+    try { wheelWrap.setPointerCapture(e.pointerId); } catch (err) {}
+  }
+  handleWheelMove(e.clientX, e.clientY);
+  sound.init();
+  sound.resume();
+});
+
+wheelWrap.addEventListener('pointermove', (e) => {
+  if (e.pointerId === wheelPointerId) {
+    e.preventDefault();
+    handleWheelMove(e.clientX, e.clientY);
+  }
+});
+
+const resetWheel = (e) => {
+  if (wheelPointerId === null || e.pointerId === wheelPointerId) {
+    wheelPointerId = null;
+    state.inputs.steerAnalog = 0;
+    wheelInner.style.transform = 'rotate(0deg)';
+  }
+};
+wheelWrap.addEventListener('pointerup', resetWheel);
+wheelWrap.addEventListener('pointercancel', resetWheel);
+wheelWrap.addEventListener('lostpointercapture', resetWheel);
+
+// ======================= PHYSICS & AI SIMULATION =======================
+function updateCarPhysics(car, ctrl, dt) {
+  const spec = car.spec;
+  const tc = state.trackCache;
+  const halfRoad = tc.def.roadWidth * 0.5;
+  const spdMult = car.isMe ? ((saveData.settings.maxSpdMult || 100) / 100) : 1.0;
+  const sensMult = car.isMe ? ((saveData.settings.steerSens || 100) / 100) : 1.0;
+
+  const info = queryTrackInfoRaw(car.x, car.y, tc.segments);
+  const offRoad = info.dist > halfRoad - 6;
+
+  // Улучшенная модель сцепления шин с учетом скорости (прижимная сила), погоды и обочины
+  const weatherGrip = state.raceSettings.weather === 'rain' ? 0.77 : 1.0;
+  const surfaceGrip = offRoad ? 0.62 : 1.0;
+  const speedRatioGrip = Math.min(1, Math.abs(car.speed) / spec.maxSpeed);
+  const aeroGripBonus = 1 + spec.downforce * speedRatioGrip * 0.25;
+
+  const effectiveMaxSpeed = spec.maxSpeed * spdMult * (offRoad ? 0.66 : 1.0);
+
+  // Штраф за глубокий срез поворота
+  if (info.dist > halfRoad + 30 && !car.finished && state.countdown <= 0) {
+    car.offTrackTimer += dt;
+    if (car.offTrackTimer > 1.45) {
+      car.offTrackTimer = 0;
+      car.penaltyTime += 2.0;
+      if (car.isMe) {
+        showBanner('⚠ СРЕЗ ТРАССЫ: +2.0 сек', '#ff5566', 1100);
+        sound.playBeep(220, 0.2, 'square');
+      }
+    }
+  } else {
+    car.offTrackTimer = Math.max(0, car.offTrackTimer - dt * 0.6);
+  }
+
+  const fx = Math.cos(car.angle);
+  const fy = Math.sin(car.angle);
+  const rx = -fy;
+  const ry = fx;
+
+  let forwardSpeed = car.vx * fx + car.vy * fy;
+  let lateralSpeed = car.vx * rx + car.vy * ry;
+
+  car.braking = false;
+  let targetPitch = 0;
+
+  if (state.countdown > 0) {
+    car.vx *= 0.85;
+    car.vy *= 0.85;
+    car.rpm = ctrl.up ? Math.min(7200, car.rpm + 6000 * dt) : Math.max(1000, car.rpm - 4000 * dt);
+    car.gear = 1;
+    return;
+  }
+
+  if (ctrl.up && !car.finished) {
+    const speedRatio = Math.max(0, forwardSpeed / effectiveMaxSpeed);
+    const torqueMult = 1.2 - 0.44 * speedRatio;
+    forwardSpeed += spec.accel * torqueMult * surfaceGrip * dt;
+    targetPitch = -1.1;
+  } else if (ctrl.down && !car.finished) {
+    if (forwardSpeed > 15) {
+      forwardSpeed -= spec.brake * weatherGrip * surfaceGrip * dt;
+      car.braking = true;
+      targetPitch = 1.35;
+    } else {
+      forwardSpeed -= spec.accel * 0.58 * dt;
+      targetPitch = 0.65;
+    }
+  } else {
+    const drag = (65 + Math.abs(forwardSpeed) * 0.14) * dt;
+    if (forwardSpeed > 0) forwardSpeed = Math.max(0, forwardSpeed - drag);
+    else if (forwardSpeed < 0) forwardSpeed = Math.min(0, forwardSpeed + drag);
+  }
+
+  forwardSpeed = Math.max(-200, Math.min(effectiveMaxSpeed, forwardSpeed));
+
+  // Плавное рулевое управление с учетом чувствительности и скорости
+  const rawSteer = Math.max(-1, Math.min(1, ctrl.steer * sensMult));
+  const steerLerp = Math.min(1, 13.5 * dt);
+  car.steerInput += (rawSteer - car.steerInput) * steerLerp;
+
+  const speedSteerFactor = Math.min(1, Math.abs(forwardSpeed) / 105);
+  const highSpeedStability = 1 - Math.min(0.22, (Math.abs(forwardSpeed) / 700) * 0.22);
+  const reverseSign = forwardSpeed >= -5 ? 1 : -1;
+  const driftBoost = ctrl.drift && Math.abs(forwardSpeed) > 125 ? 1.26 : 1.0;
+
+  const targetAngVel = car.steerInput * spec.turnRate * speedSteerFactor * highSpeedStability * reverseSign * driftBoost;
+  car.angularVel += (targetAngVel - car.angularVel) * Math.min(1, 11.5 * dt);
+  car.angle += car.angularVel * dt;
+
+  // Реалистичное поперечное сцепление и контролируемый занос
+  const activeLateralGrip = (ctrl.drift ? spec.driftGrip : spec.grip) * weatherGrip * surfaceGrip * aeroGripBonus;
+  lateralSpeed *= Math.exp(-activeLateralGrip * dt);
+
+  const nfx = Math.cos(car.angle);
+  const nfy = Math.sin(car.angle);
+  const nrx = -nfy;
+  const nry = nfx;
+
+  car.vx = nfx * forwardSpeed + nrx * lateralSpeed;
+  car.vy = nfy * forwardSpeed + nry * lateralSpeed;
+  car.speed = Math.hypot(car.vx, car.vy) * (forwardSpeed >= 0 ? 1 : -1);
+
+  car.driftAmount = Math.min(1, Math.abs(lateralSpeed) / 130);
+
+  // Физика подвески (продольный и поперечный крены + тряска на обочине)
+  car.pitch += (targetPitch - car.pitch) * Math.min(1, 10 * dt);
+  const targetRoll = Math.max(-1.6, Math.min(1.6, lateralSpeed / 90));
+  car.roll += (targetRoll - car.roll) * Math.min(1, 10 * dt);
+  car.suspensionOffset = offRoad ? Math.sin(performance.now() * 0.045) * 1.4 : 0;
+
+  // Передача и тахометр
+  const absSpd = Math.abs(car.speed);
+  if (car.speed < -10) {
+    car.gear = -1;
+    car.rpm = 1200 + (absSpd / 200) * 5800;
+  } else {
+    const g = Math.min(6, Math.max(1, Math.floor((absSpd / spec.maxSpeed) * 6) + 1));
+    car.gear = g;
+    const gearMin = ((g - 1) / 6) * spec.maxSpeed;
+    const gearSpan = spec.maxSpeed / 6;
+    const inGearRatio = Math.max(0, Math.min(1, (absSpd - gearMin) / gearSpan));
+    car.rpm = Math.round(1600 + inGearRatio * 6700 + (ctrl.up ? 350 : 0));
+  }
+
+  // Перемещение
+  car.x += car.vx * dt;
+  car.y += car.vy * dt;
+
+  // Плавное упругое столкновение с внешним ограждением трассы (без скачков и невидимых стен)
+  const postInfo = queryTrackInfoRaw(car.x, car.y, tc.segments);
+  const maxBoundary = tc.barrierRadius;
+  if (postInfo.dist > maxBoundary && postInfo.dist > 0.001) {
+    const pushX = (postInfo.projX - car.x) / postInfo.dist;
+    const pushY = (postInfo.projY - car.y) / postInfo.dist;
+    const overlap = postInfo.dist - maxBoundary;
+
+    // Мягкое выталкивание к реальной геометрии ограждения
+    car.x += pushX * overlap;
+    car.y += pushY * overlap;
+
+    const vn = car.vx * pushX + car.vy * pushY;
+    if (vn < 0) {
+      // Скольжение вдоль отбойника с реалистичной потерей скорости от трения
+      const restitution = 0.25;
+      const wallFriction = 0.92;
+      car.vx = (car.vx - (1 + restitution) * vn * pushX) * wallFriction;
+      car.vy = (car.vy - (1 + restitution) * vn * pushY) * wallFriction;
+
+      if (car.isMe && Math.abs(vn) > 95) {
+        sound.playCrash(Math.abs(vn) / 380);
+        spawnSparks(car.x - pushX * 18, car.y - pushY * 18, 7);
+      }
+    }
+  }
+
+  updateLapProgress(car, postInfo.progress, tc.totalLen);
+
+  // Эффекты шин и пыли на обочине
+  if (offRoad && absSpd > 75) {
+    emitDustEffects(car);
+  } else if ((car.driftAmount > 0.34 || car.braking) && absSpd > 90) {
+    emitTireEffects(car);
+  }
+}
+
+function updateLapProgress(car, curProg, totalLen) {
+  if (car.finished) return;
+  const quarterLen = totalLen * 0.25;
+
+  if (curProg > quarterLen && curProg < totalLen - quarterLen) {
+    car.passedMidpoint = true;
+  }
+
+  if (car.lastProgress > totalLen * 0.82 && curProg < totalLen * 0.18 && car.passedMidpoint) {
+    const now = performance.now();
+    if (car.lapStartTime > 0) {
+      const lapDur = now - car.lapStartTime;
+      if (!car.bestLapTime || lapDur < car.bestLapTime) {
+        car.bestLapTime = lapDur;
+        if (car.isMe) {
+          const track = state.raceSettings.track;
+          if (!saveData.bestLaps[track] || lapDur < saveData.bestLaps[track]) {
+            saveData.bestLaps[track] = lapDur;
+            persistSave();
+          }
+          $('bestLapLbl').textContent = formatTime(car.bestLapTime);
+        }
+      }
+    }
+    car.lapStartTime = now;
+    car.lap++;
+    car.passedMidpoint = false;
+
+    if (car.isMe && car.lap <= state.raceSettings.laps) {
+      showBanner(`КРУГ ${car.lap} / ${state.raceSettings.laps}`, '#33ccff', 1100);
+      sound.playBeep(660, 0.16);
+    }
+    if (car.lap > state.raceSettings.laps) {
+      finishCar(car);
+    }
+  }
+
+  let normalizedProg = curProg;
+  if (!car.passedMidpoint && curProg > totalLen * 0.75) {
+    normalizedProg = curProg - totalLen;
+  }
+  car.totalDistance = (car.lap - 1) * totalLen + normalizedProg;
+  car.lastProgress = curProg;
+}
+
+function finishCar(car) {
+  if (car.finished) return;
+  car.finished = true;
+  car.finishTime = state.elapsedTime + car.penaltyTime * 1000;
+
+  if (car.isMe) {
+    sound.playBeep(880, 0.35);
+    spawnConfetti();
+    saveLocalRecord(car);
+    if (state.isMultiplayer && socket && socket.connected) {
+      socket.emit('update', {
+        x: car.x, y: car.y, vx: car.vx, vy: car.vy, angle: car.angle, speed: car.speed,
+        lap: car.lap, bestLap: car.bestLapTime, finished: true, finishTime: car.finishTime, penalty: car.penaltyTime
+      });
+    }
+    setTimeout(() => showFinishScreen(), 1200);
+  }
+}
+
+function computeAiControls(car) {
+  const tc = state.trackCache;
+  const info = queryTrackInfoRaw(car.x, car.y, tc.segments);
+  const lookAheadSteps = 7;
+  const targetSeg = tc.segments[(info.segIdx + lookAheadSteps) % tc.segments.length];
+
+  let laneShift = car.aiLaneOffset;
+  for (const other of state.cars) {
+    if (other.id === car.id) continue;
+    const dx = other.x - car.x;
+    const dy = other.y - car.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 130) {
+      const forwardDot = (dx * Math.cos(car.angle) + dy * Math.sin(car.angle)) / (d || 1);
+      if (forwardDot > 0.65) {
+        const sideDot = dx * (-Math.sin(car.angle)) + dy * Math.cos(car.angle);
+        laneShift += sideDot > 0 ? -48 : 48;
+      }
+    }
+  }
+  laneShift = Math.max(-tc.def.roadWidth * 0.34, Math.min(tc.def.roadWidth * 0.34, laneShift));
+
+  const tx = targetSeg.ax + targetSeg.nx * laneShift;
+  const ty = targetSeg.ay + targetSeg.ny * laneShift;
+  const desiredAngle = Math.atan2(ty - car.y, tx - car.x);
+  const angleDiff = Math.atan2(Math.sin(desiredAngle - car.angle), Math.cos(desiredAngle - car.angle));
+
+  const steer = Math.max(-1, Math.min(1, angleDiff * 2.4));
+  const sharpTurn = Math.abs(angleDiff) > 0.55;
+  const up = car.speed < car.spec.maxSpeed * car.aiSkill * (sharpTurn ? 0.68 : 1.0);
+  const down = sharpTurn && car.speed > car.spec.maxSpeed * 0.72;
+  const drift = Math.abs(angleDiff) > 0.72 && car.speed > 260;
+
+  return { up, down, left: false, right: false, steer, drift };
+}
+
+function resolveCarCollisions() {
+  const radius = 21;
+  const minDist = radius * 2;
+  for (let i = 0; i < state.cars.length; i++) {
+    for (let j = i + 1; j < state.cars.length; j++) {
+      const a = state.cars[i];
+      const b = state.cars[j];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 0.01 && dist < minDist) {
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const overlap = (minDist - dist) * 0.5;
+        a.x -= nx * overlap;
+        a.y -= ny * overlap;
+        b.x += nx * overlap;
+        b.y += ny * overlap;
+
+        const rvx = b.vx - a.vx;
+        const rvy = b.vy - a.vy;
+        const velAlongNormal = rvx * nx + rvy * ny;
+        if (velAlongNormal < 0) {
+          const restitution = 0.45;
+          const totalMass = a.spec.mass + b.spec.mass;
+          const imp = -(1 + restitution) * velAlongNormal / totalMass;
+          a.vx -= imp * b.spec.mass * nx;
+          a.vy -= imp * b.spec.mass * ny;
+          b.vx += imp * a.spec.mass * nx;
+          b.vy += imp * a.spec.mass * ny;
+
+          // Реалистичное гашение скорости при ударе
+          a.vx *= 0.94;
+          a.vy *= 0.94;
+          b.vx *= 0.94;
+          b.vy *= 0.94;
+
+          if ((a.isMe || b.isMe) && Math.abs(velAlongNormal) > 70) {
+            sound.playCrash(Math.abs(velAlongNormal) / 350);
+            spawnSparks((a.x + b.x) * 0.5, (a.y + b.y) * 0.5, 9);
+          }
+        }
+      }
+    }
+  }
+}
+
+// ======================= PARTICLES & EFFECTS =======================
+function emitTireEffects(car) {
+  const maxSkids = saveData.settings.gfx === 'low' ? 120 : (saveData.settings.gfx === 'medium' ? 320 : 650);
+  const cos = Math.cos(car.angle);
+  const sin = Math.sin(car.angle);
+  const rearX = car.x - cos * 15;
+  const rearY = car.y - sin * 15;
+  const lx = rearX - sin * 9;
+  const ly = rearY + cos * 9;
+  const rx = rearX + sin * 9;
+  const ry = rearY - cos * 9;
+
+  state.skidmarks.push({ x: lx, y: ly, angle: car.angle, alpha: 0.45 });
+  state.skidmarks.push({ x: rx, y: ry, angle: car.angle, alpha: 0.45 });
+  if (state.skidmarks.length > maxSkids) {
+    state.skidmarks.splice(0, state.skidmarks.length - maxSkids);
+  }
+
+  if (saveData.settings.gfx !== 'low' && Math.random() < 0.55) {
+    state.particles.push({
+      type: 'smoke',
+      x: (Math.random() < 0.5 ? lx : rx),
+      y: (Math.random() < 0.5 ? ly : ry),
+      vx: (Math.random() - 0.5) * 25,
+      vy: (Math.random() - 0.5) * 25,
+      r: 5 + Math.random() * 5,
+      life: 0.55,
+      maxLife: 0.55
+    });
+  }
+}
+
+function emitDustEffects(car) {
+  if (saveData.settings.gfx === 'low' || Math.random() > 0.5) return;
+  const cos = Math.cos(car.angle);
+  const sin = Math.sin(car.angle);
+  const rearX = car.x - cos * 16;
+  const rearY = car.y - sin * 16;
+  state.particles.push({
+    type: 'dust',
+    x: rearX + (Math.random() - 0.5) * 14,
+    y: rearY + (Math.random() - 0.5) * 14,
+    vx: -car.vx * 0.15 + (Math.random() - 0.5) * 30,
+    vy: -car.vy * 0.15 + (Math.random() - 0.5) * 30,
+    r: 6 + Math.random() * 6,
+    life: 0.45,
+    maxLife: 0.45
+  });
+}
+
+function spawnSparks(x, y, count) {
+  if (saveData.settings.gfx === 'low') return;
+  for (let i = 0; i < count; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const spd = 80 + Math.random() * 190;
+    state.particles.push({
+      type: 'spark',
+      x, y,
+      vx: Math.cos(ang) * spd,
+      vy: Math.sin(ang) * spd,
+      r: 2.2,
+      life: 0.28,
+      maxLife: 0.28
+    });
+  }
+}
+
+function spawnConfetti() {
+  for (let i = 0; i < 90; i++) {
+    state.confetti.push({
+      x: Math.random() * W,
+      y: -20 - Math.random() * 200,
+      vx: (Math.random() - 0.5) * 120,
+      vy: 140 + Math.random() * 220,
+      color: COLORS[i % COLORS.length],
+      size: 6 + Math.random() * 6,
+      rot: Math.random() * 6
+    });
+  }
+}
+
+function updateEffects(dt) {
+  for (let i = state.particles.length - 1; i >= 0; i--) {
+    const p = state.particles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    if (p.type === 'smoke' || p.type === 'dust') p.r += 14 * dt;
+    p.life -= dt;
+    if (p.life <= 0) state.particles.splice(i, 1);
+  }
+  for (let i = state.confetti.length - 1; i >= 0; i--) {
+    const c = state.confetti[i];
+    c.x += c.vx * dt;
+    c.y += c.vy * dt;
+    c.rot += 5 * dt;
+    if (c.y > H + 30) state.confetti.splice(i, 1);
+  }
+}
+
+// ======================= REPLAY SYSTEM =======================
+function recordReplayFrame() {
+  if (state.replayMode || state.countdown > 0) return;
+  if (state.replayFrames.length > 2400) state.replayFrames.shift();
+  state.replayFrames.push({
+    t: state.elapsedTime,
+    cars: state.cars.map(c => ({
+      id: c.id, name: c.name, color: c.color, carType: c.carType,
+      x: c.x, y: c.y, angle: c.angle, speed: c.speed, steerInput: c.steerInput,
+      braking: c.braking, driftAmount: c.driftAmount, roll: c.roll, isMe: c.isMe
+    }))
+  });
+}
+
+$('btnWatchReplay').onclick = () => {
+  if (state.replayFrames.length < 5) return;
+  $('finishOverlay').classList.add('hidden');
+  $('hud').classList.add('hidden');
+  $('controls').classList.add('hidden');
+  $('replayBar').classList.remove('hidden');
+  state.replayMode = true;
+  state.replayPaused = false;
+  state.replayIdx = 0;
+  state.replayAccum = 0;
+  state.inGame = true;
+  state.lastFrameTime = performance.now();
+  requestAnimationFrame(gameLoop);
+};
+
+$('btnReplayPause').onclick = () => {
+  state.replayPaused = !state.replayPaused;
+  $('btnReplayPause').textContent = state.replayPaused ? '▶' : '⏸';
+};
+
+$('btnReplayExit').onclick = () => {
+  state.replayMode = false;
+  $('replayBar').classList.add('hidden');
+  $('finishOverlay').classList.remove('hidden');
+};
+
+// ======================= RENDERING =======================
+function drawCarModel(c) {
+  ctx.save();
+  ctx.translate(c.x, c.y + (c.suspensionOffset || 0));
+  ctx.rotate(c.angle);
+
+  // Реалистичная мягкая тень со смещением от крена подвески
+  ctx.fillStyle = 'rgba(0,0,0,0.42)';
+  roundRect(ctx, -22 + (c.roll || 0) * 1.6, -11 + (c.roll || 0) * 2.1, 48, 25, 6);
+  ctx.fill();
+
+  // Визуальная анимация поворота передних колёс
+  const steerAng = (c.steerInput || 0) * 0.42;
+  drawWheel(13, -13, steerAng);
+  drawWheel(13, 13, steerAng);
+  drawWheel(-14, -13, 0);
+  drawWheel(-14, 13, 0);
+
+  // Кузов с небольшим смещением от крена подвески
+  ctx.save();
+  ctx.translate(-(c.pitch || 0) * 0.8, (c.roll || 0) * 0.7);
+
+  ctx.fillStyle = c.color;
+  if (c.carType === 'hyper') {
+    ctx.beginPath();
+    ctx.moveTo(25, 0);
+    ctx.lineTo(14, -12);
+    ctx.lineTo(-22, -13);
+    ctx.lineTo(-24, 13);
+    ctx.lineTo(14, 12);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    roundRect(ctx, -23, -12, 46, 24, c.carType === 'muscle' ? 3 : 6);
+    ctx.fill();
+  }
+
+  if (c.carType === 'muscle' || c.carType === 'sport') {
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.fillRect(-20, -3, 42, 2);
+    ctx.fillRect(-20, 1, 42, 2);
+  }
+
+  ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.fillStyle = '#141824';
+  roundRect(ctx, -8, -9, 17, 18, 3);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(135,210,255,0.82)';
+  ctx.beginPath();
+  ctx.moveTo(9, -7);
+  ctx.lineTo(3, -8);
+  ctx.lineTo(3, 8);
+  ctx.lineTo(9, 7);
+  ctx.closePath();
+  ctx.fill();
+
+  if (c.carType === 'drift' || c.carType === 'hyper') {
+    ctx.fillStyle = '#111318';
+    ctx.fillRect(-25, -13, 4, 26);
+  }
+
+  ctx.fillStyle = '#fff9b0';
+  ctx.fillRect(21, -10, 3, 4);
+  ctx.fillRect(21, 6, 3, 4);
+
+  if (state.raceSettings.timeOfDay === 'night' || state.raceSettings.weather === 'fog') {
+    const grad = ctx.createLinearGradient(22, 0, 195, 0);
+    grad.addColorStop(0, 'rgba(255,250,200,0.34)');
+    grad.addColorStop(1, 'rgba(255,250,200,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(22, -10);
+    ctx.lineTo(195, -52);
+    ctx.lineTo(195, 52);
+    ctx.lineTo(22, 10);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.fillStyle = c.braking ? '#ff1e38' : '#7a111a';
+  ctx.fillRect(-24, -10, 2.5, 5);
+  ctx.fillRect(-24, 5, 2.5, 5);
+  if (c.braking) {
+    ctx.fillStyle = 'rgba(255,30,56,0.45)';
+    ctx.beginPath();
+    ctx.arc(-25, -7.5, 7, 0, Math.PI * 2);
+    ctx.arc(-25, 7.5, 7, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+  ctx.restore();
+
+  // Имя пилота и индикатор круга над соперниками
+  ctx.save();
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+  ctx.lineWidth = 3;
+  const label = c.isMe ? c.name : `${c.name} • Кр ${c.lap || 1}`;
+  ctx.strokeText(label, c.x, c.y - 26);
+  ctx.fillStyle = c.isMe ? '#ffcc00' : '#ffffff';
+  ctx.fillText(label, c.x, c.y - 26);
+  ctx.restore();
+}
+
+function drawWheel(x, y, ang) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  ctx.fillStyle = '#111';
+  ctx.fillRect(-4.5, -2.2, 9, 4.4);
+  ctx.restore();
+}
+
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+function renderScene() {
+  const tc = state.trackCache;
+  if (!tc) return;
+
+  ctx.fillStyle = '#141a16';
+  ctx.fillRect(0, 0, W, H);
+
+  const activeCars = state.replayMode
+    ? (state.replayFrames[state.replayIdx]?.cars || state.cars)
+    : state.cars;
+  const focusCar = activeCars.find(c => c.isMe) || activeCars[0];
+  if (!focusCar) return;
+
+  // Пользовательская настройка дистанции камеры + динамический зум от скорости
+  const camDistMult = (saveData.settings.camDist || 100) / 100;
+  const spdRatio = Math.min(1, Math.abs(focusCar.speed || 0) / 600);
+  const baseScale = Math.min(W / 1280, H / 800) / camDistMult;
+  const targetZoom = Math.max(0.42, baseScale * (1.06 - spdRatio * 0.14));
+  state.cam.zoom += (targetZoom - state.cam.zoom) * 0.09;
+
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  if (saveData.settings.camAngle === 'chase') {
+    const targetRot = -focusCar.angle - Math.PI / 2;
+    const diff = Math.atan2(Math.sin(targetRot - state.cam.angle), Math.cos(targetRot - state.cam.angle));
+    state.cam.angle += diff * 0.08;
+    ctx.rotate(state.cam.angle);
+  } else {
+    state.cam.angle = 0;
+  }
+  ctx.scale(state.cam.zoom, state.cam.zoom);
+  ctx.translate(-state.cam.x, -state.cam.y);
+
+  ctx.drawImage(tc.bgCanvas, 0, 0);
+
+  for (let i = 0; i < state.skidmarks.length; i++) {
+    const s = state.skidmarks[i];
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.angle);
+    ctx.fillStyle = `rgba(18,18,22,${s.alpha})`;
+    ctx.fillRect(-4, -2, 8, 4);
+    ctx.restore();
+  }
+
+  for (const c of activeCars) {
+    drawCarModel(c);
+  }
+
+  for (const p of state.particles) {
+    const alpha = Math.max(0, p.life / p.maxLife);
+    if (p.type === 'smoke') {
+      ctx.fillStyle = `rgba(220,225,235,${alpha * 0.35})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (p.type === 'dust') {
+      ctx.fillStyle = `rgba(165,148,118,${alpha * 0.42})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = `rgba(255,200,60,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  if (state.raceSettings.timeOfDay === 'night') {
+    for (const pr of tc.props) {
+      if (pr.type === 'lamp') {
+        const g = ctx.createRadialGradient(pr.x, pr.y, 4, pr.x, pr.y, 130);
+        g.addColorStop(0, 'rgba(255,220,140,0.22)');
+        g.addColorStop(1, 'rgba(255,220,140,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(pr.x, pr.y, 130, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  ctx.restore();
+
+  if (state.raceSettings.timeOfDay === 'night') {
+    ctx.fillStyle = 'rgba(6, 10, 26, 0.44)';
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (state.raceSettings.weather === 'fog') {
+    const fogGrad = ctx.createRadialGradient(W / 2, H / 2, W * 0.14, W / 2, H / 2, W * 0.56);
+    fogGrad.addColorStop(0, 'rgba(195,205,215,0.06)');
+    fogGrad.addColorStop(1, 'rgba(195,205,215,0.72)');
+    ctx.fillStyle = fogGrad;
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (state.raceSettings.weather === 'rain') {
+    ctx.strokeStyle = 'rgba(175,215,255,0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (const r of state.rainDrops) {
+      r.x = (r.x - 140 * 0.016 + W) % W;
+      r.y = (r.y + r.spd * 0.016) % H;
+      ctx.moveTo(r.x, r.y);
+      ctx.lineTo(r.x - 4, r.y + r.len);
+    }
+    ctx.stroke();
+  }
+
+  if (spdRatio > 0.72) {
+    const alpha = (spdRatio - 0.72) * 0.9;
+    ctx.strokeStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < 14; i++) {
+      const ang = (i / 14) * Math.PI * 2 + (performance.now() * 0.004);
+      const r1 = Math.min(W, H) * 0.42;
+      const r2 = Math.min(W, H) * 0.55;
+      ctx.moveTo(W / 2 + Math.cos(ang) * r1, H / 2 + Math.sin(ang) * r1);
+      ctx.lineTo(W / 2 + Math.cos(ang) * r2, H / 2 + Math.sin(ang) * r2);
+    }
+    ctx.stroke();
+  }
+
+  for (const cf of state.confetti) {
+    ctx.save();
+    ctx.translate(cf.x, cf.y);
+    ctx.rotate(cf.rot);
+    ctx.fillStyle = cf.color;
+    ctx.fillRect(-cf.size / 2, -cf.size / 2, cf.size, cf.size * 0.6);
+    ctx.restore();
+  }
+
+  if (!state.replayMode) renderMinimap(activeCars);
+}
+
+function renderMinimap(activeCars) {
+  const tc = state.trackCache;
+  if (!tc) return;
+  const mw = miniCanvas.width;
+  const mh = miniCanvas.height;
+  mctx.clearRect(0, 0, mw, mh);
+
+  const sx = (mw - 16) / tc.def.worldW;
+  const sy = (mh - 16) / tc.def.worldH;
+  const s = Math.min(sx, sy);
+  const ox = (mw - tc.def.worldW * s) / 2;
+  const oy = (mh - tc.def.worldH * s) / 2;
+
+  mctx.beginPath();
+  tc.spline.forEach((p, idx) => {
+    const px = ox + p.x * s;
+    const py = oy + p.y * s;
+    if (idx === 0) mctx.moveTo(px, py);
+    else mctx.lineTo(px, py);
+  });
+  mctx.closePath();
+  mctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  mctx.lineWidth = 4;
+  mctx.stroke();
+
+  for (const c of activeCars) {
+    mctx.fillStyle = c.isMe ? '#ffcc00' : c.color;
+    mctx.beginPath();
+    mctx.arc(ox + c.x * s, oy + c.y * s, c.isMe ? 4 : 3, 0, Math.PI * 2);
+    mctx.fill();
+  }
+}
+
+// ======================= HUD, RANKINGS & RECORDS =======================
+function formatTime(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) return '00:00.0';
+  const totalSec = Math.max(0, ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = Math.floor(totalSec % 60);
+  const tenths = Math.floor((totalSec * 10) % 10);
+  return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${tenths}`;
+}
+
+function updateHUD() {
+  const myCar = getMyCar();
+  if (!myCar) return;
+
+  const sorted = [...state.cars].sort((a, b) => {
+    if (a.finished && b.finished) return a.finishTime - b.finishTime;
+    if (a.finished) return -1;
+    if (b.finished) return 1;
+    return b.totalDistance - a.totalDistance;
+  });
+
+  const myRank = sorted.findIndex(c => c.id === myCar.id) + 1;
+
+  if (state.countdown <= 0 && !myCar.finished && state.overtakeCooldown <= 0) {
+    if (myRank < state.lastRank) {
+      showBanner(`🔥 ОБГОН! Позиция #${myRank}`, '#28c76f', 950);
+      sound.playBeep(740, 0.12);
+      state.overtakeCooldown = 1.5;
+    }
+  }
+  state.lastRank = myRank;
+
+  $('posLbl').textContent = `${myRank}/${sorted.length}`;
+  $('lapN').textContent = Math.min(myCar.lap, state.raceSettings.laps);
+  $('timeLbl').textContent = formatTime(state.elapsedTime);
+
+  const curLapMs = (state.countdown <= 0 && myCar.lapStartTime > 0 && !myCar.finished)
+    ? (performance.now() - myCar.lapStartTime)
+    : 0;
+  $('curLapLbl').textContent = formatTime(curLapMs);
+
+  const trackBest = saveData.bestLaps[state.raceSettings.track];
+  const displayBest = myCar.bestLapTime || trackBest;
+  $('bestLapLbl').textContent = displayBest ? formatTime(displayBest) : '--:--.-';
+
+  if (myCar.penaltyTime > 0) {
+    $('penBox').classList.remove('hidden');
+    $('penLbl').textContent = `+${myCar.penaltyTime.toFixed(0)}с`;
+  }
+
+  $('spd').textContent = Math.round(Math.abs(myCar.speed) * 0.45);
+  $('gearLbl').textContent = myCar.gear === -1 ? 'R' : myCar.gear;
+  $('rpmNum').textContent = Math.round(myCar.rpm);
+  $('rpmFill').style.width = `${Math.min(100, Math.max(8, ((myCar.rpm - 1000) / 7500) * 100))}%`;
+
+  $('lb').innerHTML = sorted.map((c, idx) => `
+    <div class="lb-row ${c.isMe ? 'me' : ''}">
+      <span><span class="lb-dot" style="background:${c.color}"></span>${idx + 1}. ${escapeHtml(c.name)}</span>
+      <span>${c.finished ? 'Финиш' : ('Кр ' + Math.min(c.lap, state.raceSettings.laps))}</span>
+    </div>
+  `).join('');
+}
+
+function saveLocalRecord(car) {
+  const track = state.raceSettings.track;
+  const list = saveData.records[track] || [];
+  list.push({
+    name: car.name,
+    carType: car.carType,
+    time: car.finishTime,
+    bestLap: car.bestLapTime || saveData.bestLaps[track] || null,
+    laps: state.raceSettings.laps
+  });
+  saveData.records[track] = mergeRecords(list, []);
+  persistSave();
+}
+
+function mergeRecords(a, b) {
+  const all = [...a, ...b];
+  all.sort((x, y) => x.time - y.time);
+  return all.slice(0, 10);
+}
+
+function renderRecordsTable(trackKey) {
+  const bestLap = saveData.bestLaps[trackKey];
+  $('bestLapPersonalBox').textContent = bestLap
+    ? `Ваш личный рекорд круга на этой трассе: ${formatTime(bestLap)}`
+    : 'Личный рекорд круга пока не установлен';
+
+  const list = saveData.records[trackKey] || [];
+  const tbody = $('recBody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9aa0b8">Рекордов пока нет</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map((r, i) => `
+    <tr>
+      <td><b>${i + 1}</b></td>
+      <td>${escapeHtml(r.name)}</td>
+      <td>${CARS[r.carType]?.name || r.carType}</td>
+      <td style="color:#28c76f;font-weight:700">${formatTime(r.time)}</td>
+      <td style="color:#33ccff">${r.bestLap ? formatTime(r.bestLap) : '—'}</td>
+    </tr>
+  `).join('');
+}
+
+function showFinishScreen() {
+  const sorted = [...state.cars].sort((a, b) => {
+    if (a.finished && b.finished) return a.finishTime - b.finishTime;
+    if (a.finished) return -1;
+    if (b.finished) return 1;
+    return b.totalDistance - a.totalDistance;
+  });
+
+  const myIdx = sorted.findIndex(c => c.isMe);
+  const myCar = sorted[myIdx];
+  $('finishSummary').textContent = `Ваше место: #${myIdx + 1} • Итоговое время: ${formatTime(myCar?.finishTime || state.elapsedTime)}`;
+
+  $('finishBody').innerHTML = sorted.map((c, idx) => {
+    const estTime = c.finished ? c.finishTime : (state.elapsedTime + (idx + 1) * 1400);
+    return `
+      <tr style="${c.isMe ? 'color:#ffcc00;font-weight:700' : ''}">
+        <td>#${idx + 1}</td>
+        <td>${escapeHtml(c.name)}</td>
+        <td>${c.bestLapTime ? formatTime(c.bestLapTime) : '—'}</td>
+        <td>${c.penaltyTime > 0 ? '+' + c.penaltyTime.toFixed(0) + 'с' : '—'}</td>
+        <td>${formatTime(estTime)}</td>
+      </tr>
+    `;
+  }).join('');
+
+  $('finishOverlay').classList.remove('hidden');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+// ======================= MAIN GAME LOOP =======================
+let replayRecordTimer = 0;
+let hudTimer = 0;
+
+function gameLoop(now) {
+  if (!state.inGame) return;
+  const dt = Math.min(0.05, Math.max(0.001, (now - state.lastFrameTime) / 1000));
+  state.lastFrameTime = now;
+
+  if (state.replayMode) {
+    if (!state.replayPaused && state.replayFrames.length > 0) {
+      state.replayAccum += dt;
+      while (state.replayAccum >= 0.05) {
+        state.replayAccum -= 0.05;
+        state.replayIdx = (state.replayIdx + 1) % state.replayFrames.length;
+      }
+      const frame = state.replayFrames[state.replayIdx];
+      $('replayTimeLbl').textContent = `Повтор: ${formatTime(frame.t)}`;
+      const fCar = frame.cars.find(c => c.isMe) || frame.cars[0];
+      if (fCar) {
+        state.cam.x += (fCar.x - state.cam.x) * Math.min(1, 8 * dt);
+        state.cam.y += (fCar.y - state.cam.y) * Math.min(1, 8 * dt);
+      }
+    }
+    renderScene();
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  if (!state.paused) {
+    if (state.countdown <= 0) {
+      state.elapsedTime = now - state.raceStartTime;
+    }
+    if (state.overtakeCooldown > 0) state.overtakeCooldown -= dt;
+
+    const subDt = dt * 0.5;
+    for (let step = 0; step < 2; step++) {
+      for (const car of state.cars) {
+        if (car.isMe) {
+          const btnSteer = (state.inputs.left ? -1 : 0) + (state.inputs.right ? 1 : 0);
+          const steer = Math.abs(state.inputs.steerAnalog) > 0.02 ? state.inputs.steerAnalog : btnSteer;
+          updateCarPhysics(car, {
+            up: state.inputs.up,
+            down: state.inputs.down,
+            steer,
+            drift: state.inputs.drift
+          }, subDt);
+        } else if (car.isAi) {
+          const aiCtrl = computeAiControls(car);
+          updateCarPhysics(car, aiCtrl, subDt);
+        } else if (state.remotePlayers[car.id]) {
+          // Улучшенная сетевая интерполяция + предсказание по вектору скорости (dead reckoning)
+          const rp = state.remotePlayers[car.id];
+          const packetAge = Math.min(0.18, Math.max(0, (now - (rp.recvAt || now)) / 1000));
+          const predX = rp.x + (rp.vx || 0) * packetAge;
+          const predY = rp.y + (rp.vy || 0) * packetAge;
+
+          const errDist = Math.hypot(predX - car.x, predY - car.y);
+          if (errDist > 380) {
+            car.x = predX;
+            car.y = predY;
+          } else {
+            const blend = Math.min(1, 16 * subDt);
+            car.x += (predX - car.x) * blend;
+            car.y += (predY - car.y) * blend;
+          }
+
+          car.vx = rp.vx || 0;
+          car.vy = rp.vy || 0;
+          const aDiff = Math.atan2(Math.sin(rp.angle - car.angle), Math.cos(rp.angle - car.angle));
+          car.angle += aDiff * Math.min(1, 16 * subDt);
+          car.speed = rp.speed || 0;
+          car.steerInput = rp.steerInput || 0;
+          car.lap = rp.lap || car.lap;
+          car.bestLapTime = rp.bestLap || car.bestLapTime;
+          car.braking = !!rp.braking;
+          car.driftAmount = rp.drift || 0;
+          car.finished = !!rp.finished;
+          car.finishTime = rp.finishTime || null;
+
+          const info = queryTrackInfoRaw(car.x, car.y, state.trackCache.segments);
+          updateLapProgress(car, info.progress, state.trackCache.totalLen);
+        }
+      }
+      resolveCarCollisions();
+    }
+
+    const myCar = getMyCar();
+    if (myCar) {
+      const isDyn = saveData.settings.camAngle === 'dynamic';
+      const lookX = isDyn ? myCar.vx * 0.24 : 0;
+      const lookY = isDyn ? myCar.vy * 0.24 : 0;
+      state.cam.x += (myCar.x + lookX - state.cam.x) * Math.min(1, 8.5 * dt);
+      state.cam.y += (myCar.y + lookY - state.cam.y) * Math.min(1, 8.5 * dt);
+      sound.updateEngine(myCar.rpm, state.inputs.up, myCar.driftAmount, true);
+    }
+
+    updateEffects(dt);
+
+    replayRecordTimer += dt;
+    if (replayRecordTimer >= 0.05) {
+      replayRecordTimer = 0;
+      recordReplayFrame();
+    }
+
+    // Оптимизированная отправка телеметрии в мультиплеере (~25 Гц при движении, 5 Гц на месте)
+    if (state.isMultiplayer && socket && socket.connected && myCar) {
+      const isMoving = Math.abs(myCar.speed) > 2 || Math.abs(myCar.steerInput) > 0.02 || myCar.braking;
+      const sendInterval = isMoving ? 40 : 200;
+      if (now - state.lastSend >= sendInterval) {
+        state.lastSend = now;
+        socket.emit('update', {
+          x: Math.round(myCar.x * 10) / 10,
+          y: Math.round(myCar.y * 10) / 10,
+          vx: Math.round(myCar.vx * 10) / 10,
+          vy: Math.round(myCar.vy * 10) / 10,
+          angle: Math.round(myCar.angle * 1000) / 1000,
+          speed: Math.round(myCar.speed),
+          steerInput: Math.round(myCar.steerInput * 100) / 100,
+          lap: myCar.lap,
+          bestLap: myCar.bestLapTime,
+          drift: Math.round(myCar.driftAmount * 100) / 100,
+          braking: myCar.braking,
+          gear: myCar.gear,
+          rpm: myCar.rpm,
+          penalty: myCar.penaltyTime,
+          finished: myCar.finished,
+          finishTime: myCar.finishTime
+        });
+      }
+    }
+
+    hudTimer += dt;
+    if (hudTimer >= 0.08) {
+      hudTimer = 0;
+      updateHUD();
+    }
+  } else {
+    sound.updateEngine(1000, false, 0, false);
+  }
+
+  renderScene();
+  requestAnimationFrame(gameLoop);
+}
+
+initUI();
+})();
+</script>
+</body>
+</html>
